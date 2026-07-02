@@ -481,6 +481,15 @@ h1 {
   font-weight: 900;
 }
 
+.lock-state {
+  border-bottom: 1px solid #e1d08a;
+  background: #fff8d8;
+  color: #735f00;
+  padding: 11px 14px;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
 .empty-state {
   display: grid;
   min-height: 260px;

@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import type { Team } from "@/data/teams";
+import {
+  DRAFT_LOTTERY_GENERATION_LOCKED,
+  DRAFT_LOTTERY_LOCKED_MESSAGE,
+  DRAFT_LOTTERY_VIEW_RESET_LOCKED
+} from "@/lib/lottery-lock";
 import { useDraftSimulation } from "./useDraftSimulation";
 
 export function DraftBoard() {
@@ -32,14 +37,18 @@ export function DraftBoard() {
         <div className="lottery-actions" aria-label="Actions draft">
           <button
             className="primary-action"
-            disabled={isLoading}
+            disabled={DRAFT_LOTTERY_GENERATION_LOCKED || isLoading}
             onClick={runSimulation}
           >
-            {isLoading ? "Connexion DB" : "Générer un ordre"}
+            {DRAFT_LOTTERY_GENERATION_LOCKED
+              ? "Génération bloquée"
+              : isLoading
+                ? "Connexion DB"
+                : "Générer un ordre"}
           </button>
           <button
             className="secondary-action"
-            disabled={!hasResult || isLoading}
+            disabled={DRAFT_LOTTERY_VIEW_RESET_LOCKED || !hasResult || isLoading}
             onClick={resetSimulation}
           >
             Réinitialiser
@@ -66,10 +75,22 @@ export function DraftBoard() {
         <div>
           <span>Statut</span>
           <strong>
-            {isLoading ? "Synchronisation DB" : hasResult ? "Board actif" : "En attente"}
+            {DRAFT_LOTTERY_GENERATION_LOCKED
+              ? "Verrouillée"
+              : isLoading
+                ? "Synchronisation DB"
+                : hasResult
+                  ? "Board actif"
+                  : "En attente"}
           </strong>
         </div>
       </div>
+
+      {DRAFT_LOTTERY_GENERATION_LOCKED ? (
+        <div className="lock-state" role="status">
+          {DRAFT_LOTTERY_LOCKED_MESSAGE}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="error-state" role="alert">

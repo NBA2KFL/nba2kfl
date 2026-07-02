@@ -67,16 +67,9 @@ export function useDraftSimulation() {
 
   const resetSimulation = useCallback(async () => {
     setError(null);
-    setIsLoading(true);
-
-    try {
-      applySimulationPayload(await requestDraftSimulation("DELETE"));
-    } catch (requestError) {
-      setError(getErrorMessage(requestError));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [applySimulationPayload]);
+    setDraftOrder([]);
+    setLastRunAt(null);
+  }, []);
 
   return {
     draftOrder,
