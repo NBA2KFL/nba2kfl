@@ -18,9 +18,9 @@ export default function Home() {
           <p className="section-label">Draft operations</p>
           <h2 id="home-title">Simule la lotterie, puis lis l'ordre de draft.</h2>
           <p>
-            L'app est maintenant structurée autour de trois espaces: cette page
-            d'accueil, la page Lotterie pour générer le tirage et la page Draft
-            pour exploiter l'ordre complet.
+            L'app est structurée autour de la lotterie, du board draft, de la
+            sélection des franchises par les GMs et de la redraft joueurs en
+            snake mode.
           </p>
 
           <div className="home-actions" aria-label="Actions principales">
@@ -44,7 +44,7 @@ export default function Home() {
           </div>
           <div>
             <span>Pages</span>
-            <strong>3</strong>
+            <strong>5</strong>
           </div>
           <div className="logo-strip" aria-hidden="true">
             {NBA_TEAMS.slice(0, 8).map((team) => (
@@ -65,10 +65,10 @@ export default function Home() {
         </div>
         <div>
           <p className="section-label">Draft</p>
-          <h2>Board dédié</h2>
+          <h2>Workflow GM</h2>
           <p>
-            Les picks sont séparés entre lottery picks et reste du premier tour,
-            avec logos, abréviations et conférence.
+            Les GMs choisissent leur franchise selon le rang tiré hors app,
+            puis la redraft joueurs applique automatiquement l'ordre snake.
           </p>
         </div>
       </section>

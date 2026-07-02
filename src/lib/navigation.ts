@@ -1,4 +1,9 @@
-export type AppRoute = "/" | "/lotterie" | "/draft";
+export type AppRoute =
+  | "/"
+  | "/lotterie"
+  | "/draft"
+  | "/draft/franchises"
+  | "/draft/redraft";
 
 export type AppNavItem = {
   href: AppRoute;
@@ -25,6 +30,18 @@ export const APP_NAV_ITEMS = [
     label: "Draft",
     description: "Consulte l'ordre complet généré par le dernier tirage.",
     ctaLabel: "Voir le board draft"
+  },
+  {
+    href: "/draft/franchises",
+    label: "Franchises",
+    description: "Attribue les franchises NBA selon l'ordre tiré au sort hors app.",
+    ctaLabel: "Choisir les franchises"
+  },
+  {
+    href: "/draft/redraft",
+    label: "Redraft",
+    description: "Effectue la draft joueurs avec un ordre snake.",
+    ctaLabel: "Lancer la redraft"
   }
 ] as const satisfies readonly AppNavItem[];
 

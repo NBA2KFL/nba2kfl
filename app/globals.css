@@ -339,6 +339,11 @@ h1 {
   background: var(--green-dark);
 }
 
+.primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .secondary-action,
 .tertiary-action {
   border: 1px solid var(--border);
@@ -588,6 +593,222 @@ h1 {
   font-weight: 900;
 }
 
+.workflow-page {
+  margin-top: 16px;
+}
+
+.workflow-panel {
+  overflow: hidden;
+}
+
+.selection-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.selection-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.selection-table th {
+  height: 36px;
+  border-bottom: 1px solid var(--border);
+  background: var(--table-head);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.selection-table th,
+.selection-table td {
+  padding: 8px 12px;
+}
+
+.selection-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.selection-table tbody tr:nth-child(odd) {
+  background: #fcfcfd;
+}
+
+.selection-table tbody tr.is-current,
+.redraft-pick-row.is-current {
+  background: var(--green-soft);
+  box-shadow: inset 4px 0 0 var(--green);
+}
+
+.control-input,
+.control-select,
+.player-pool-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.control-input,
+.control-select {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.control-input:focus,
+.control-select:focus,
+.player-pool-input:focus {
+  border-color: var(--green);
+  outline: 2px solid rgba(19, 166, 106, 0.18);
+}
+
+.selection-team-control {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.selection-team-control .control-select:first-child {
+  grid-column: 1 / -1;
+}
+
+.status-cell {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.locked-gm-name {
+  display: block;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-muted);
+  color: var(--navy);
+  padding: 9px 10px;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.inline-action {
+  min-width: 220px;
+  padding: 0 16px;
+}
+
+.redraft-workspace {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.redraft-controls {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  border-right: 1px solid var(--border);
+  padding-right: 16px;
+}
+
+.field-stack {
+  display: grid;
+  gap: 7px;
+}
+
+.field-stack span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.player-pool-input {
+  min-height: 320px;
+  padding: 10px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.redraft-pick-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.redraft-pick-row {
+  display: grid;
+  grid-template-columns: 82px minmax(220px, 1fr) minmax(220px, 320px);
+  gap: 12px;
+  align-items: center;
+  min-height: 58px;
+  border-bottom: 1px solid var(--border);
+  padding: 9px 12px;
+}
+
+.redraft-pick-row:first-child {
+  border-top: 1px solid var(--border);
+}
+
+.redraft-pick-row:nth-child(odd):not(.is-current) {
+  background: #fcfcfd;
+}
+
+.redraft-pick-meta {
+  display: grid;
+  gap: 2px;
+}
+
+.redraft-pick-meta strong {
+  color: var(--red);
+  font-size: 1.02rem;
+}
+
+.redraft-pick-meta span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.redraft-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.redraft-team-cell div {
+  min-width: 0;
+}
+
+.redraft-team-cell strong,
+.redraft-team-cell span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redraft-team-cell strong {
+  color: var(--navy);
+  font-size: 0.92rem;
+}
+
+.redraft-team-cell span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
 .team-pool {
   align-self: start;
   padding: 16px;
@@ -670,6 +891,16 @@ h1 {
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .redraft-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .redraft-controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 0 16px;
   }
 
   .lottery-actions {
@@ -758,6 +989,18 @@ h1 {
 
   .draft-table {
     min-width: 560px;
+  }
+
+  .redraft-workspace {
+    padding: 12px;
+  }
+
+  .redraft-pick-row {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .redraft-pick-row .control-select {
+    grid-column: 1 / -1;
   }
 
   .draft-rounds {

@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { APP_NAV_ITEMS } from "./navigation";
 
 describe("APP_NAV_ITEMS", () => {
-  it("exposes the three primary app pages in order", () => {
+  it("exposes the draft workflow pages in order", () => {
     expect(APP_NAV_ITEMS.map((item) => item.href)).toEqual([
       "/",
       "/lotterie",
-      "/draft"
+      "/draft",
+      "/draft/franchises",
+      "/draft/redraft"
     ]);
   });
 
