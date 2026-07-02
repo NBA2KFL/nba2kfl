@@ -45,6 +45,7 @@ button {
 .site-header,
 .lottery-panel,
 .team-pool {
+  min-width: 0;
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -132,6 +133,10 @@ h1 {
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 16px;
   margin-top: 16px;
+}
+
+.workspace > * {
+  min-width: 0;
 }
 
 .lottery-panel,
@@ -236,6 +241,7 @@ h1 {
 }
 
 .draft-table-wrap {
+  max-width: 100%;
   overflow-x: auto;
 }
 
@@ -444,6 +450,14 @@ h1 {
 
   .lottery-header {
     padding: 14px;
+  }
+
+  .lottery-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .lottery-copy {
+    font-size: 0.88rem;
   }
 
   .lottery-actions {

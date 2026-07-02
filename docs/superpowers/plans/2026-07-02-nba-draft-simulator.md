@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a French Next.js simulator that generates a fair random NBA draft order.
+**Goal:** Build a French Next.js simulator that generates a fair random NBA draft order with a Tankathon-inspired table and NBA team logos.
 
-**Architecture:** Use the Next.js App Router with a small client component for stateful interactions. Keep data and shuffle logic outside React so the lottery behavior is easy to test. Style the app as a focused two-column dashboard with no official NBA assets.
+**Architecture:** Use the Next.js App Router with a small client component for stateful interactions. Keep data and shuffle logic outside React so the lottery behavior is easy to test. Style the app as a compact Tankathon-inspired lottery table with local NBA logo SVG assets.
 
 **Tech Stack:** Next.js, React, TypeScript, CSS Modules/global CSS, Vitest.
 
