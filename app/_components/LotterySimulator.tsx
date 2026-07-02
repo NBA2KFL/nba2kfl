@@ -9,7 +9,9 @@ const FAIR_CHANCE_LABEL = "3,33 %";
 export function LotterySimulator() {
   const {
     draftOrder,
+    error,
     hasResult,
+    isLoading,
     lastRunAt,
     resetSimulation,
     runSimulation
@@ -29,12 +31,16 @@ export function LotterySimulator() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions de tirage">
-          <button className="primary-action" onClick={runSimulation}>
-            Simuler la lotterie
+          <button
+            className="primary-action"
+            disabled={isLoading}
+            onClick={runSimulation}
+          >
+            {isLoading ? "Connexion DB" : "Simuler la lotterie"}
           </button>
           <button
             className="secondary-action"
-            disabled={!hasResult}
+            disabled={!hasResult || isLoading}
             onClick={resetSimulation}
           >
             Réinitialiser
@@ -60,9 +66,17 @@ export function LotterySimulator() {
         </div>
         <div>
           <span>Statut</span>
-          <strong>{hasResult ? "Tirage généré" : "Prêt"}</strong>
+          <strong>
+            {isLoading ? "Synchronisation DB" : hasResult ? "Tirage généré" : "Prêt"}
+          </strong>
         </div>
       </div>
+
+      {error ? (
+        <div className="error-state" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       {hasResult ? (
         <div className="draft-table-wrap">
@@ -104,8 +118,8 @@ export function LotterySimulator() {
         <div className="empty-state">
           <strong>Aucun tirage lancé</strong>
           <p>
-            Lance une simulation pour générer les 30 positions et alimenter la
-            page Draft.
+            Lance une simulation pour générer les 30 positions, les sauvegarder
+            en base et alimenter la page Draft.
           </p>
         </div>
       )}

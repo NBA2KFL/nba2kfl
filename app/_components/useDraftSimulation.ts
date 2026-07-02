@@ -1,53 +1,110 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { NBA_TEAMS, type Team } from "@/data/teams";
-import { shuffleTeams } from "@/lib/draft";
-import {
-  DRAFT_SIMULATION_STORAGE_KEY,
-  parseDraftSimulation,
-  serializeDraftSimulation
-} from "@/lib/draft-storage";
+import type { Team } from "@/data/teams";
+
+type DraftSimulationApiResponse = {
+  draftOrder: Team[];
+  error?: string;
+  lastRunAt: string | null;
+};
 
 export function useDraftSimulation() {
   const [draftOrder, setDraftOrder] = useState<Team[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
 
   useEffect(() => {
-    const restored = parseDraftSimulation(
-      window.localStorage.getItem(DRAFT_SIMULATION_STORAGE_KEY),
-      NBA_TEAMS
-    );
+    let isActive = true;
 
-    if (restored) {
-      setDraftOrder(restored.draftOrder);
-      setLastRunAt(restored.lastRunAt);
+    async function loadSimulation() {
+      try {
+        const payload = await requestDraftSimulation("GET");
+
+        if (isActive) {
+          applySimulationPayload(payload);
+          setError(null);
+        }
+      } catch (requestError) {
+        if (isActive) {
+          setError(getErrorMessage(requestError));
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
     }
+
+    void loadSimulation();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
-  const runSimulation = useCallback(() => {
-    const nextOrder = shuffleTeams(NBA_TEAMS);
-    const nextRunAt = new Date();
+  const applySimulationPayload = useCallback(
+    (payload: DraftSimulationApiResponse) => {
+      setDraftOrder(payload.draftOrder);
+      setLastRunAt(payload.lastRunAt ? new Date(payload.lastRunAt) : null);
+    },
+    []
+  );
 
-    setDraftOrder(nextOrder);
-    setLastRunAt(nextRunAt);
-    window.localStorage.setItem(
-      DRAFT_SIMULATION_STORAGE_KEY,
-      serializeDraftSimulation(nextOrder, nextRunAt)
-    );
-  }, []);
+  const runSimulation = useCallback(async () => {
+    setError(null);
+    setIsLoading(true);
 
-  const resetSimulation = useCallback(() => {
-    setDraftOrder([]);
-    setLastRunAt(null);
-    window.localStorage.removeItem(DRAFT_SIMULATION_STORAGE_KEY);
-  }, []);
+    try {
+      applySimulationPayload(await requestDraftSimulation("POST"));
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applySimulationPayload]);
+
+  const resetSimulation = useCallback(async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      applySimulationPayload(await requestDraftSimulation("DELETE"));
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applySimulationPayload]);
 
   return {
     draftOrder,
+    error,
     hasResult: draftOrder.length > 0,
+    isLoading,
     lastRunAt,
     resetSimulation,
     runSimulation
   };
+}
+
+async function requestDraftSimulation(method: "DELETE" | "GET" | "POST") {
+  const response = await fetch("/api/draft-simulation", {
+    cache: "no-store",
+    method
+  });
+  const payload = (await response.json()) as DraftSimulationApiResponse;
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? "La base de données est indisponible.");
+  }
+
+  return payload;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "La base de données est indisponible.";
 }

@@ -7,7 +7,9 @@ import { useDraftSimulation } from "./useDraftSimulation";
 export function DraftBoard() {
   const {
     draftOrder,
+    error,
     hasResult,
+    isLoading,
     lastRunAt,
     resetSimulation,
     runSimulation
@@ -28,12 +30,16 @@ export function DraftBoard() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions draft">
-          <button className="primary-action" onClick={runSimulation}>
-            Générer un ordre
+          <button
+            className="primary-action"
+            disabled={isLoading}
+            onClick={runSimulation}
+          >
+            {isLoading ? "Connexion DB" : "Générer un ordre"}
           </button>
           <button
             className="secondary-action"
-            disabled={!hasResult}
+            disabled={!hasResult || isLoading}
             onClick={resetSimulation}
           >
             Réinitialiser
@@ -59,9 +65,17 @@ export function DraftBoard() {
         </div>
         <div>
           <span>Statut</span>
-          <strong>{hasResult ? "Board actif" : "En attente"}</strong>
+          <strong>
+            {isLoading ? "Synchronisation DB" : hasResult ? "Board actif" : "En attente"}
+          </strong>
         </div>
       </div>
+
+      {error ? (
+        <div className="error-state" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       {hasResult ? (
         <div className="draft-rounds">

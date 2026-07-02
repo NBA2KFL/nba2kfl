@@ -472,6 +472,15 @@ h1 {
   font-weight: 900;
 }
 
+.error-state {
+  border-bottom: 1px solid #efb8b2;
+  background: #fff1ef;
+  color: #9f2f29;
+  padding: 11px 14px;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
 .empty-state {
   display: grid;
   min-height: 260px;
