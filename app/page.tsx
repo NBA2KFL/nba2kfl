@@ -1,179 +1,76 @@
-"use client";
-
-import { useMemo, useState } from "react";
-import { NBA_TEAMS, type Team } from "@/data/teams";
-import { shuffleTeams } from "@/lib/draft";
-
-const FAIR_CHANCE_LABEL = "3.33%";
-
-function formatRunDate(date: Date | null) {
-  if (!date) {
-    return "Aucune simulation";
-  }
-
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(date);
-}
+import Link from "next/link";
+import { NBA_TEAMS } from "@/data/teams";
+import { PRIMARY_APP_NAV_ITEMS } from "@/lib/navigation";
+import { AppHeader } from "./_components/AppHeader";
 
 export default function Home() {
-  const [draftOrder, setDraftOrder] = useState<Team[]>([]);
-  const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
-
-  const teamsByConference = useMemo(
-    () => ({
-      East: NBA_TEAMS.filter((team) => team.conference === "East"),
-      West: NBA_TEAMS.filter((team) => team.conference === "West")
-    }),
-    []
-  );
-
-  const hasResult = draftOrder.length > 0;
-  const displayedOrder = hasResult ? draftOrder : NBA_TEAMS;
-
-  function runSimulation() {
-    setDraftOrder(shuffleTeams(NBA_TEAMS));
-    setLastRunAt(new Date());
-  }
-
-  function resetSimulation() {
-    setDraftOrder([]);
-    setLastRunAt(null);
-  }
-
   return (
     <main className="app-shell">
-      <header className="site-header" aria-labelledby="page-title">
-        <div className="brand-lockup">
-          <span className="brand-mark">N2K</span>
-          <div>
-            <p className="section-label">NBA2KFL Draft Room</p>
-            <h1 id="page-title">Simulateur de Draft NBA</h1>
+      <AppHeader
+        activeHref="/"
+        description="Accueil central pour lancer la lotterie ou consulter le board draft."
+        eyebrow="NBA2KFL Draft Room"
+        title="Accueil"
+      />
+
+      <section className="home-hero" aria-labelledby="home-title">
+        <div className="home-copy">
+          <p className="section-label">Draft operations</p>
+          <h2 id="home-title">Simule la lotterie, puis lis l'ordre de draft.</h2>
+          <p>
+            L'app est maintenant structurée autour de trois espaces: cette page
+            d'accueil, la page Lotterie pour générer le tirage et la page Draft
+            pour exploiter l'ordre complet.
+          </p>
+
+          <div className="home-actions" aria-label="Actions principales">
+            {PRIMARY_APP_NAV_ITEMS.map((item) => (
+              <Link className="home-action" href={item.href} key={item.href}>
+                <strong>{item.ctaLabel}</strong>
+                <span>{item.description}</span>
+              </Link>
+            ))}
           </div>
         </div>
 
-        <nav className="top-tabs" aria-label="Navigation du simulateur">
-          <span className="top-tab is-active">Lottery</span>
-          <span className="top-tab">Draft Order</span>
-          <span className="top-tab">Teams</span>
-        </nav>
-      </header>
-
-      <section className="workspace" aria-label="Simulation de draft">
-        <section className="lottery-panel" aria-labelledby="lottery-title">
-          <div className="lottery-header">
-            <div>
-              <p className="section-label">Lottery simplifiée</p>
-              <h2 id="lottery-title">2026 NBA Draft Lottery Simulator</h2>
-              <p className="lottery-copy">
-                Tirage équitable : chaque franchise a la même chance d'obtenir
-                n'importe quel rang.
-              </p>
-            </div>
-
-            <div className="lottery-actions" aria-label="Actions de tirage">
-              <button className="primary-action" onClick={runSimulation}>
-                Sim Lottery
-              </button>
-              <button
-                className="secondary-action"
-                disabled={!hasResult}
-                onClick={resetSimulation}
-              >
-                Reset
-              </button>
-            </div>
+        <aside className="home-scoreboard" aria-label="Résumé du simulateur">
+          <div>
+            <span>Teams</span>
+            <strong>{NBA_TEAMS.length}</strong>
           </div>
-
-          <div className="summary-strip" aria-label="Résumé de la simulation">
-            <div>
-              <span>Teams</span>
-              <strong>{NBA_TEAMS.length}</strong>
-            </div>
-            <div>
-              <span>Odds</span>
-              <strong>{FAIR_CHANCE_LABEL} each</strong>
-            </div>
-            <div>
-              <span>Last sim</span>
-              <strong>{formatRunDate(lastRunAt)}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{hasResult ? "Lottery simulated" : "Ready"}</strong>
-            </div>
+          <div>
+            <span>Mode</span>
+            <strong>Fair draw</strong>
           </div>
-
-          <div className="draft-table-wrap">
-            <table className="draft-table">
-              <thead>
-                <tr>
-                  <th scope="col">Pick</th>
-                  <th scope="col">Team</th>
-                  <th scope="col">Conf</th>
-                  <th scope="col">Chance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedOrder.map((team, index) => (
-                  <tr key={team.id}>
-                    <td className="pick-cell">{index + 1}</td>
-                    <td>
-                      <div className="team-cell">
-                        <img
-                          src={team.logoUrl}
-                          alt=""
-                          className="team-logo"
-                          loading="lazy"
-                        />
-                        <div>
-                          <strong>{team.name}</strong>
-                          <span>{team.abbreviation}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{team.conference}</td>
-                    <td className="chance-cell">{FAIR_CHANCE_LABEL}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            <span>Pages</span>
+            <strong>3</strong>
           </div>
-        </section>
-
-        <aside className="team-pool" aria-labelledby="team-pool-title">
-          <div className="side-panel-heading">
-            <p className="section-label">Teams</p>
-            <h2 id="team-pool-title">Équipes disponibles</h2>
-          </div>
-
-          <div className="conference-group">
-            <h3>Conférence Est</h3>
-            <ul>
-              {teamsByConference.East.map((team) => (
-                <li key={team.id}>
-                  <img src={team.logoUrl} alt="" loading="lazy" />
-                  <span>{team.name}</span>
-                  <strong>{team.abbreviation}</strong>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="conference-group">
-            <h3>Conférence Ouest</h3>
-            <ul>
-              {teamsByConference.West.map((team) => (
-                <li key={team.id}>
-                  <img src={team.logoUrl} alt="" loading="lazy" />
-                  <span>{team.name}</span>
-                  <strong>{team.abbreviation}</strong>
-                </li>
-              ))}
-            </ul>
+          <div className="logo-strip" aria-hidden="true">
+            {NBA_TEAMS.slice(0, 8).map((team) => (
+              <img src={team.logoUrl} alt="" key={team.id} />
+            ))}
           </div>
         </aside>
+      </section>
+
+      <section className="home-section-grid" aria-label="Structure de l'app">
+        <div>
+          <p className="section-label">Lotterie</p>
+          <h2>Tirage équitable</h2>
+          <p>
+            Chaque franchise garde la même probabilité. Le résultat est
+            sauvegardé localement pour être relu sur le board.
+          </p>
+        </div>
+        <div>
+          <p className="section-label">Draft</p>
+          <h2>Board dédié</h2>
+          <p>
+            Les picks sont séparés entre lottery picks et reste du premier tour,
+            avec logos, abréviations et conférence.
+          </p>
+        </div>
       </section>
     </main>
   );

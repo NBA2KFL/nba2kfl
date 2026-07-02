@@ -32,6 +32,11 @@ body {
     "Segoe UI", sans-serif;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 button {
   font: inherit;
 }
@@ -43,6 +48,8 @@ button {
 }
 
 .site-header,
+.home-hero,
+.home-section-grid > div,
 .lottery-panel,
 .team-pool {
   min-width: 0;
@@ -56,7 +63,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 76px;
+  min-height: 86px;
   border-radius: 4px 4px 0 0;
   padding: 14px 18px;
 }
@@ -100,8 +107,16 @@ p {
 h1 {
   margin-bottom: 0;
   color: var(--navy);
-  font-size: clamp(1.8rem, 4vw, 2.7rem);
-  line-height: 0.95;
+  font-size: 2.35rem;
+  line-height: 1;
+}
+
+.header-copy {
+  max-width: 620px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .top-tabs {
@@ -126,6 +141,129 @@ h1 {
   border-color: var(--green);
   background: var(--green);
   color: #ffffff;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  margin-top: 16px;
+  border-radius: 4px;
+  padding: 22px;
+}
+
+.home-copy h2 {
+  max-width: 760px;
+  margin-bottom: 10px;
+  color: var(--navy);
+  font-size: 2rem;
+  line-height: 1.05;
+}
+
+.home-copy p:not(.section-label) {
+  max-width: 760px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-action {
+  display: grid;
+  min-height: 112px;
+  align-content: start;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-muted);
+  padding: 14px;
+}
+
+.home-action:hover {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.home-action strong {
+  color: var(--navy);
+  font-size: 1.04rem;
+}
+
+.home-action span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.home-scoreboard {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border-left: 1px solid var(--border);
+  padding-left: 22px;
+}
+
+.home-scoreboard div:not(.logo-strip) {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-muted);
+  padding: 12px;
+}
+
+.home-scoreboard span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.home-scoreboard strong {
+  color: var(--navy);
+  font-size: 1.1rem;
+}
+
+.logo-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.logo-strip img {
+  width: 100%;
+  height: 36px;
+  object-fit: contain;
+}
+
+.home-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.home-section-grid > div {
+  border-radius: 4px;
+  padding: 18px;
+}
+
+.home-section-grid h2 {
+  margin-bottom: 8px;
+  color: var(--navy);
+  font-size: 1.3rem;
+}
+
+.home-section-grid p:not(.section-label) {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .workspace {
@@ -177,13 +315,17 @@ h1 {
 }
 
 .primary-action,
-.secondary-action {
+.secondary-action,
+.tertiary-action {
+  display: inline-grid;
   min-height: 42px;
+  place-items: center;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.86rem;
   font-weight: 900;
   letter-spacing: 0.02em;
+  text-align: center;
   text-transform: uppercase;
 }
 
@@ -197,10 +339,16 @@ h1 {
   background: var(--green-dark);
 }
 
-.secondary-action {
+.secondary-action,
+.tertiary-action {
   border: 1px solid var(--border);
   background: var(--surface-muted);
   color: var(--text);
+}
+
+.tertiary-action:hover {
+  border-color: var(--green);
+  color: var(--green-dark);
 }
 
 .secondary-action:disabled {
@@ -279,7 +427,7 @@ h1 {
   background: var(--green-soft);
 }
 
-.draft-table tbody tr:nth-child(16) {
+.draft-table tbody tr:nth-child(14) {
   border-bottom: 3px solid var(--green);
 }
 
@@ -321,6 +469,104 @@ h1 {
 
 .chance-cell {
   color: var(--green-dark);
+  font-weight: 900;
+}
+
+.empty-state {
+  display: grid;
+  min-height: 260px;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px;
+  text-align: center;
+}
+
+.empty-state strong {
+  color: var(--navy);
+  font-size: 1.2rem;
+}
+
+.empty-state p {
+  max-width: 440px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.draft-rounds {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.draft-round {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.draft-round-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--table-head);
+  padding: 10px 12px;
+}
+
+.draft-round-heading h3 {
+  margin-bottom: 0;
+  color: var(--navy);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.draft-round-heading span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.draft-pick-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draft-pick-row {
+  display: grid;
+  grid-template-columns: 52px 34px minmax(0, 1fr) 58px 58px;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+}
+
+.draft-pick-row:last-child {
+  border-bottom: 0;
+}
+
+.draft-pick-row:nth-child(odd) {
+  background: #fcfcfd;
+}
+
+.draft-team-name {
+  overflow: hidden;
+  color: var(--navy);
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-pick-row strong,
+.draft-pick-row span:last-child {
+  color: var(--muted);
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
@@ -389,12 +635,19 @@ h1 {
 
 @media (max-width: 940px) {
   .site-header,
-  .lottery-header {
+  .lottery-header,
+  .home-hero {
     display: grid;
   }
 
   .top-tabs {
     justify-content: start;
+  }
+
+  .home-scoreboard {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 16px 0 0;
   }
 
   .workspace {
@@ -403,7 +656,7 @@ h1 {
 
   .lottery-actions {
     width: 100%;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .summary-strip {
@@ -440,7 +693,23 @@ h1 {
   }
 
   h1 {
-    font-size: 2.05rem;
+    font-size: 1.9rem;
+  }
+
+  .home-hero,
+  .home-section-grid > div {
+    padding: 14px;
+  }
+
+  .home-copy h2 {
+    font-size: 1.55rem;
+  }
+
+  .home-actions,
+  .home-section-grid,
+  .lottery-actions,
+  .summary-strip {
+    grid-template-columns: 1fr;
   }
 
   .top-tab {
@@ -460,14 +729,6 @@ h1 {
     font-size: 0.88rem;
   }
 
-  .lottery-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-strip {
-    grid-template-columns: 1fr;
-  }
-
   .summary-strip div {
     border-right: 0;
     border-bottom: 1px solid var(--border);
@@ -479,6 +740,18 @@ h1 {
 
   .draft-table {
     min-width: 560px;
+  }
+
+  .draft-rounds {
+    padding: 12px;
+  }
+
+  .draft-pick-row {
+    grid-template-columns: 42px 30px minmax(120px, 1fr) 48px;
+  }
+
+  .draft-pick-row span:last-child {
+    display: none;
   }
 
   .team-pool {
