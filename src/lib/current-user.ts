@@ -1,8 +1,10 @@
 import type { DraftDbClient } from "./draft-db";
 
-export type StackUserLike = {
-  displayName?: string | null;
-  primaryEmail?: string | null;
+export type BetterAuthSessionLike = {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+  } | null;
 };
 
 export type CurrentDraftUser = {
@@ -30,16 +32,16 @@ export class ForbiddenUserError extends Error {
 
 export async function resolveCurrentUser(
   db: DraftDbClient,
-  stackUser: StackUserLike | null
+  session: BetterAuthSessionLike | null
 ): Promise<CurrentDraftUser> {
-  if (!stackUser) {
+  if (!session) {
     throw new AuthRequiredError();
   }
 
-  const email = stackUser.primaryEmail?.trim().toLowerCase();
+  const email = session.user?.email?.trim().toLowerCase();
 
   if (!email) {
-    throw new ForbiddenUserError("Signed-in user has no primary email.");
+    throw new ForbiddenUserError("Signed-in user has no email.");
   }
 
   const rows = await db.query<NeonUserRow>(
@@ -55,6 +57,6 @@ export async function resolveCurrentUser(
   return {
     userId: row.id,
     email: row.email.toLowerCase(),
-    displayName: stackUser.displayName?.trim() || row.email
+    displayName: session.user?.name?.trim() || row.email
   };
 }

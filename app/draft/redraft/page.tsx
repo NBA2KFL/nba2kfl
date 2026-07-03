@@ -1,9 +1,17 @@
-import { stackServerApp } from "../../../stack/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { AppHeader } from "../../_components/AppHeader";
 import { RedraftRoom } from "../../_components/RedraftRoom";
 
 export default async function RedraftPage() {
-  await stackServerApp.getUser({ or: "redirect" });
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
+
+  if (!session) {
+    redirect("/sign-in?callbackURL=/draft/redraft");
+  }
 
   return (
     <main className="app-shell">

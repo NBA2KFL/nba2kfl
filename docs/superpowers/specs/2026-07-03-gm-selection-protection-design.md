@@ -6,9 +6,9 @@ Proteger les choix de franchise et de joueurs pour que chaque GM connecte puisse
 
 ## Approved Scope
 
-- Ajouter Stack Auth au projet Next.js App Router.
-- Utiliser `stackServerApp.getUser()` cote serveur pour identifier l'utilisateur courant.
-- Mapper l'utilisateur Stack courant vers `neon_auth."user"` avec son email principal.
+- Ajouter Better Auth au projet Next.js App Router.
+- Utiliser `auth.api.getSession({ headers })` cote serveur pour identifier l'utilisateur courant.
+- Mapper l'utilisateur Better Auth courant vers `neon_auth."user"` avec son email.
 - Autoriser `PATCH /api/franchise-selections` seulement si le slot demande appartient au GM connecte.
 - Retirer le reset global non protege de l'interface GM; aucune mutation globale n'est disponible sans role admin explicite.
 - Persister les picks joueurs en base au lieu de les stocker uniquement dans `localStorage`.
@@ -27,30 +27,32 @@ Proteger les choix de franchise et de joueurs pour que chaque GM connecte puisse
 
 ## Authentication
 
-Le projet utilisera Stack Auth avec l'integration officielle Next.js App Router:
+Le projet utilisera Better Auth avec l'integration officielle Next.js App Router:
 
-- `@stackframe/stack` comme SDK applicatif.
-- `stack/server.ts` avec `StackServerApp` et `tokenStore: "nextjs-cookie"`.
-- `stack/client.ts` pour les hooks et composants client.
-- `app/handler/[...stack]/page.tsx` pour les pages Stack de connexion, inscription et deconnexion.
-- `app/layout.tsx` enveloppe l'application avec `StackProvider` et `StackTheme`.
-- Les pages `/draft/franchises` et `/draft/redraft` protegent leur contenu avec `stackServerApp.getUser({ or: "redirect" })`.
+- `better-auth` comme SDK applicatif.
+- `src/lib/auth.ts` configure Better Auth avec `pg.Pool`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` et `emailAndPassword`.
+- `src/lib/auth-client.ts` expose le client React via `createAuthClient`.
+- `app/api/auth/[...all]/route.ts` expose le handler Better Auth via `toNextJsHandler(auth)`.
+- `app/sign-in/page.tsx` fournit une page email/mot de passe minimale pour connexion et creation de compte.
+- Les pages `/draft/franchises` et `/draft/redraft` protegent leur contenu avec `auth.api.getSession({ headers: await headers() })`, puis redirigent vers `/sign-in` si aucune session n'existe.
 
 Les variables d'environnement attendues sont:
 
-- `NEXT_PUBLIC_STACK_PROJECT_ID`.
-- `NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY`.
-- `STACK_SECRET_SERVER_KEY`.
+- `DATABASE_URL`.
+- `BETTER_AUTH_URL`.
+- `BETTER_AUTH_SECRET`.
+
+Les tables internes Better Auth doivent etre creees dans Postgres avant la premiere connexion/creation de compte. La migration schema Better Auth reste une operation explicite de deploiement et ne remplace pas les tables metier existantes `gm_draft_slots` et `neon_auth."user"`.
 
 ## Current User Mapping
 
-Un helper serveur extrait l'utilisateur courant via Stack Auth, lit son `primaryEmail`, puis retrouve le compte correspondant dans `neon_auth."user"` avec une comparaison email insensible a la casse. Si aucun utilisateur Stack n'est connecte, l'API renvoie `401`. Si l'utilisateur est connecte mais n'a aucun compte metier relie dans Neon, l'API renvoie `403`.
+Un helper serveur extrait l'utilisateur courant via Better Auth, lit `session.user.email`, puis retrouve le compte correspondant dans `neon_auth."user"` avec une comparaison email insensible a la casse. Si aucune session Better Auth n'est connectee, l'API renvoie `401`. Si l'utilisateur est connecte mais n'a aucun compte metier relie dans Neon, l'API renvoie `403`.
 
 Le helper retourne une identite applicative minimale:
 
 - `userId`: id UUID de `neon_auth."user"`.
 - `email`: email normalise.
-- `displayName`: libelle optionnel pour l'interface.
+- `displayName`: libelle optionnel pour l'interface, derive de `session.user.name` ou de l'email.
 
 ## Franchise Selection Authorization
 
@@ -142,7 +144,7 @@ Les deux pages affichent la presence des GMs actifs et se synchronisent via SSE 
 
 Les erreurs serveur sont affichees dans les panneaux existants:
 
-- `401`: redirection Stack ou message de session expiree.
+- `401`: redirection Better Auth ou message de session expiree.
 - `403`: "Ce choix appartient a un autre GM."
 - `409`: franchise ou joueur deja attribue.
 - `500`: message base de donnees indisponible.
@@ -165,6 +167,6 @@ Les changements doivent suivre TDD:
 
 ## References
 
-- Stack Auth setup: https://docs.stack-auth.com/docs/getting-started/setup
-- Stack Auth users and page protection: https://docs.stack-auth.com/docs/getting-started/users
+- Better Auth Next.js integration: https://www.better-auth.com/docs/integrations/next
+- Better Auth email/password: https://www.better-auth.com/docs/authentication/email-password
 - Next.js Route Handlers streaming: https://nextjs.org/docs/app/building-your-application/routing/route-handlers

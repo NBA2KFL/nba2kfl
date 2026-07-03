@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { StackProvider, StackTheme } from "@stackframe/stack";
-import { stackServerApp } from "../stack/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,11 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body>
-        <StackProvider app={stackServerApp}>
-          <StackTheme>{children}</StackTheme>
-        </StackProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

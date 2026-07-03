@@ -4,9 +4,11 @@
 
 **Goal:** Protect franchise and player selections by authenticated GM ownership, while adding serverless-compatible live updates, presence, and deterministic conflict handling.
 
-**Architecture:** Stack Auth identifies the current signed-in user, a server helper maps that user to `neon_auth."user"`, and all write APIs enforce ownership with SQL predicates. Draft state is persisted in Postgres, live sync uses an append-only `draft_events` table plus SSE, and presence uses persisted heartbeats. Client components remain broad read-only boards, but only owner-controlled rows are editable.
+**Auth Provider Amendment:** Use Better Auth instead of Stack Auth. Any older Stack Auth snippets below are superseded by `src/lib/auth.ts`, `app/api/auth/[...all]/route.ts`, `auth.api.getSession({ headers })`, `src/lib/auth-client.ts`, and `/sign-in`.
 
-**Tech Stack:** Next.js 16 App Router, React 19, Vitest, `@neondatabase/serverless`, Stack Auth `@stackframe/stack`, Postgres via Neon, SSE with `ReadableStream` and `EventSource`.
+**Architecture:** Better Auth identifies the current signed-in user, a server helper maps that user to `neon_auth."user"` by email, and all write APIs enforce ownership with SQL predicates. Draft state is persisted in Postgres, live sync uses an append-only `draft_events` table plus SSE, and presence uses persisted heartbeats. Client components remain broad read-only boards, but only owner-controlled rows are editable.
+
+**Tech Stack:** Next.js 16 App Router, React 19, Vitest, `@neondatabase/serverless`, Better Auth, `pg`, Postgres via Neon, SSE with `ReadableStream` and `EventSource`.
 
 ---
 

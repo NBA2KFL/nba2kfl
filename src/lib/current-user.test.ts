@@ -7,7 +7,7 @@ import {
 } from "./current-user";
 
 describe("resolveCurrentUser", () => {
-  it("requires a signed-in Stack user", async () => {
+  it("requires a signed-in Better Auth session", async () => {
     const db = createDbClient();
 
     await expect(resolveCurrentUser(db, null)).rejects.toBeInstanceOf(
@@ -16,11 +16,11 @@ describe("resolveCurrentUser", () => {
     expect(db.query).not.toHaveBeenCalled();
   });
 
-  it("requires a primary email on the Stack user", async () => {
+  it("requires an email on the Better Auth session user", async () => {
     const db = createDbClient();
 
     await expect(
-      resolveCurrentUser(db, { displayName: "Anna", primaryEmail: null })
+      resolveCurrentUser(db, { user: { name: "Anna", email: null } })
     ).rejects.toBeInstanceOf(ForbiddenUserError);
     expect(db.query).not.toHaveBeenCalled();
   });
@@ -30,8 +30,10 @@ describe("resolveCurrentUser", () => {
 
     await expect(
       resolveCurrentUser(db, {
-        displayName: "Anna",
-        primaryEmail: "anna@nba2kfl.local"
+        user: {
+          name: "Anna",
+          email: "anna@nba2kfl.local"
+        }
       })
     ).rejects.toBeInstanceOf(ForbiddenUserError);
   });
@@ -41,8 +43,10 @@ describe("resolveCurrentUser", () => {
 
     await expect(
       resolveCurrentUser(db, {
-        displayName: "Anna",
-        primaryEmail: "ANNA@NBA2KFL.LOCAL"
+        user: {
+          name: "Anna",
+          email: "ANNA@NBA2KFL.LOCAL"
+        }
       })
     ).resolves.toEqual({
       userId: "user-1",
