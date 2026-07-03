@@ -7,7 +7,8 @@ describe("APP_NAV_ITEMS", () => {
       "/",
       "/lotterie",
       "/draft/franchises",
-      "/draft/redraft"
+      "/draft/redraft",
+      "/sign-in"
     ]);
   });
 

@@ -14,7 +14,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   return (
     <main className="app-shell">
       <AppHeader
-        activeHref="/"
+        activeHref="/sign-in"
         description="Connecte ton compte GM avant de modifier une franchise ou un pick joueur."
         eyebrow="NBA2KFL Draft Room"
         title="Connexion GM"

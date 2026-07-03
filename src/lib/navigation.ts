@@ -2,7 +2,8 @@ export type AppRoute =
   | "/"
   | "/lotterie"
   | "/draft/franchises"
-  | "/draft/redraft";
+  | "/draft/redraft"
+  | "/sign-in";
 
 export type AppNavItem = {
   href: AppRoute;
@@ -35,9 +36,15 @@ export const APP_NAV_ITEMS = [
     label: "Redraft",
     description: "Effectue la draft joueurs avec un ordre snake.",
     ctaLabel: "Lancer la redraft"
+  },
+  {
+    href: "/sign-in",
+    label: "Connexion",
+    description: "Connecte ton compte GM.",
+    ctaLabel: "Se connecter"
   }
 ] as const satisfies readonly AppNavItem[];
 
 export const PRIMARY_APP_NAV_ITEMS = APP_NAV_ITEMS.filter(
-  (item) => item.href !== "/"
+  (item) => item.href !== "/" && item.href !== "/sign-in"
 );
