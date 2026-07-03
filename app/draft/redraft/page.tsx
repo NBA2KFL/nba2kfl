@@ -1,7 +1,10 @@
+import { stackServerApp } from "../../../stack/server";
 import { AppHeader } from "../../_components/AppHeader";
 import { RedraftRoom } from "../../_components/RedraftRoom";
 
-export default function RedraftPage() {
+export default async function RedraftPage() {
+  await stackServerApp.getUser({ or: "redirect" });
+
   return (
     <main className="app-shell">
       <AppHeader

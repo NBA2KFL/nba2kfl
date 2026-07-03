@@ -1,7 +1,10 @@
+import { stackServerApp } from "../../../stack/server";
 import { AppHeader } from "../../_components/AppHeader";
 import { FranchiseSelectionBoard } from "../../_components/FranchiseSelectionBoard";
 
-export default function FranchiseSelectionPage() {
+export default async function FranchiseSelectionPage() {
+  await stackServerApp.getUser({ or: "redirect" });
+
   return (
     <main className="app-shell">
       <AppHeader
