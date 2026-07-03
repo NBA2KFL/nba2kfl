@@ -14,12 +14,15 @@ Proteger les choix de franchise et de joueurs pour que chaque GM connecte puisse
 - Persister les picks joueurs en base au lieu de les stocker uniquement dans `localStorage`.
 - Autoriser un choix de joueur seulement si le pick appartient au slot GM du compte connecte.
 - Garder la lecture globale des franchises et des picks pour afficher le board complet.
+- Ajouter un flux live adapte au serverless avec Server-Sent Events.
+- Gerer la presence live des GMs connectes avec heartbeat persiste.
+- Resoudre les conflits simultanes cote serveur avec transactions, contraintes DB et rafraichissement automatique client.
 
 ## Out Of Scope
 
 - Gestion fine des roles admin.
 - Draft timer temps reel ou verrou de pick courant.
-- WebSocket, presence live, ou resolution automatique des conflits simultanes.
+- WebSocket permanent ou serveur stateful en memoire.
 - Refonte visuelle majeure des pages draft.
 
 ## Authentication
@@ -84,11 +87,58 @@ L'API redraft expose:
 
 La liste des joueurs disponibles reste configurable dans l'UI et peut rester en `localStorage` pour cette iteration. La protection demandee porte sur l'action de selectionner un joueur, qui passe par l'API protegee.
 
+## Live Updates With SSE
+
+Le live utilise Server-Sent Events plutot que WebSocket, car l'app est hebergee en serverless. Le flux est unidirectionnel serveur vers client, avec mutations classiques en `PATCH`/`POST` pour les actions utilisateur.
+
+Une table `draft_events` sert de journal append-only:
+
+- `id bigint generated always as identity primary key`.
+- `event_type text not null`: `franchise_selection_changed`, `redraft_pick_changed`, `presence_changed`, `conflict_resolved`.
+- `payload jsonb not null`.
+- `created_at timestamptz not null default now()`.
+
+Chaque mutation autorisee ecrit son changement metier et insere un evenement dans la meme transaction. Le client ouvre `GET /api/draft-events` avec `EventSource`. La route SSE:
+
+- authentifie l'utilisateur courant;
+- retourne `Content-Type: text/event-stream`;
+- lit `Last-Event-ID` ou un curseur initial;
+- emet les evenements manquants;
+- envoie des commentaires keepalive;
+- ferme proprement apres 25 secondes, puis laisse `EventSource` reconnecter automatiquement.
+
+Si la connexion SSE est interrompue, le client continue de fonctionner: les mutations restent HTTP, et la reconnexion reprend depuis le dernier id recu. Apres trois erreurs `EventSource` consecutives, le client active un refetch periodique toutes les 15 secondes jusqu'a la prochaine connexion SSE reussie.
+
+## Live Presence
+
+La presence est stockee dans `draft_presence`:
+
+- `user_id uuid primary key references neon_auth."user"(id)`.
+- `display_name text not null`.
+- `active_page text not null`: `franchises` ou `redraft`.
+- `active_slot integer null`.
+- `last_seen_at timestamptz not null`.
+
+Le client envoie un heartbeat `POST /api/draft-presence` toutes les 25 secondes et quand il change de page active. Le serveur considere un GM present si `last_seen_at` date de 60 secondes ou moins. Les changements de presence creent aussi des evenements SSE pour mettre a jour les badges "en ligne" sans recharger la page.
+
+## Simultaneous Conflict Resolution
+
+La base reste l'autorite unique. Les conflits sont resolus sans etat partage en memoire:
+
+- Deux GMs choisissent la meme franchise: la contrainte unique `team_id` accepte la premiere transaction valide et la seconde renvoie `409` avec l'etat courant.
+- Deux GMs choisissent le meme joueur: la contrainte unique `player_name` accepte la premiere transaction valide et la seconde renvoie `409` avec l'etat courant.
+- Un GM modifie un pick qui a ete recalcule ou deplace: l'API recalcule le pick depuis les franchises assignees dans la transaction et refuse si le slot attendu ne correspond plus.
+- Un client stale recoit un `409`, applique automatiquement l'etat serveur renvoye, puis affiche que le choix n'est plus disponible.
+
+Chaque conflit insere un evenement `conflict_resolved` pour que les autres clients rafraichissent leurs options. Le client ne tente pas d'ecraser automatiquement le gagnant; il synchronise le board et demande au GM de choisir une option encore disponible.
+
 ## UI Behavior
 
 La page Franchises affiche tous les GMs et franchises. Le select est actif seulement pour les slots appartenant a l'utilisateur courant. Les slots des autres GMs sont affiches en lecture seule.
 
 La page Redraft affiche le board complet. Les selects de joueurs sont actifs seulement pour les picks du GM courant. Les autres picks restent visibles avec leur joueur selectionne ou leur etat libre.
+
+Les deux pages affichent la presence des GMs actifs et se synchronisent via SSE apres chaque choix de franchise, choix de joueur, presence changee ou conflit resolu.
 
 Les erreurs serveur sont affichees dans les panneaux existants:
 
@@ -106,6 +156,10 @@ Les changements doivent suivre TDD:
 - Tests API franchises: `401`, `403`, `409`, succes autorise.
 - Tests DB redraft picks: schema, chargement, upsert autorise, suppression, joueur unique.
 - Tests API redraft picks: refus non connecte, refus non proprietaire, succes proprietaire.
+- Tests DB live: insertion d'evenements dans la meme transaction que les mutations et lecture par curseur.
+- Tests API SSE: headers `text/event-stream`, reprise par `Last-Event-ID`, keepalive, refus non connecte.
+- Tests presence: heartbeat, expiration des GMs inactifs, evenement `presence_changed`.
+- Tests conflits: deux choix simultanes de meme franchise ou joueur produisent un gagnant unique, un `409` et un evenement `conflict_resolved`.
 - Tests UI statiques ou composants: les controles non proprietaires sont desactives quand l'API indique qu'ils ne sont pas editables.
 - Verification finale: `pnpm test` et `pnpm build`.
 
@@ -113,3 +167,4 @@ Les changements doivent suivre TDD:
 
 - Stack Auth setup: https://docs.stack-auth.com/docs/getting-started/setup
 - Stack Auth users and page protection: https://docs.stack-auth.com/docs/getting-started/users
+- Next.js Route Handlers streaming: https://nextjs.org/docs/app/building-your-application/routing/route-handlers
