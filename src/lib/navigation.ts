@@ -1,7 +1,6 @@
 export type AppRoute =
   | "/"
   | "/lotterie"
-  | "/draft"
   | "/draft/franchises"
   | "/draft/redraft";
 
@@ -24,12 +23,6 @@ export const APP_NAV_ITEMS = [
     label: "Lotterie",
     description: "Lance un tirage équitable entre les 30 franchises NBA.",
     ctaLabel: "Ouvrir la lotterie"
-  },
-  {
-    href: "/draft",
-    label: "Draft",
-    description: "Consulte l'ordre complet généré par le dernier tirage.",
-    ctaLabel: "Voir le board draft"
   },
   {
     href: "/draft/franchises",

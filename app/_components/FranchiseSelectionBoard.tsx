@@ -5,40 +5,50 @@ import { useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
 import {
   createDraftSlots,
-  FRANCHISE_SELECTION_STORAGE_KEY,
-  parseFranchiseSelections,
   type FranchiseSelection
 } from "@/lib/redraft";
 
-const TEAM_IDS = NBA_TEAMS.map((team) => team.id);
+type FranchiseSelectionsApiResponse = {
+  selections?: FranchiseSelection[];
+  error?: string;
+};
 
 export function FranchiseSelectionBoard() {
   const [selections, setSelections] = useState<FranchiseSelection[]>(
     createDraftSlots(NBA_TEAMS.length)
   );
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [savingSlot, setSavingSlot] = useState<number | null>(null);
 
   useEffect(() => {
-    const restored = parseFranchiseSelections(
-      window.localStorage.getItem(FRANCHISE_SELECTION_STORAGE_KEY),
-      NBA_TEAMS.length,
-      TEAM_IDS
-    );
+    let isMounted = true;
 
-    setSelections(restored ?? createDraftSlots(NBA_TEAMS.length));
-    setHasLoaded(true);
-  }, []);
+    async function loadSelections() {
+      try {
+        const nextSelections = await requestFranchiseSelections();
 
-  useEffect(() => {
-    if (!hasLoaded) {
-      return;
+        if (isMounted) {
+          setSelections(nextSelections);
+          setErrorMessage(null);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(toErrorMessage(error));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     }
 
-    window.localStorage.setItem(
-      FRANCHISE_SELECTION_STORAGE_KEY,
-      JSON.stringify(selections)
-    );
-  }, [hasLoaded, selections]);
+    loadSelections();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const selectedTeamIds = useMemo(
     () =>
@@ -52,26 +62,36 @@ export function FranchiseSelectionBoard() {
   const assignedCount = selectedTeamIds.size;
   const nextSelection = selections.find((selection) => !selection.teamId);
 
-  function updateSelection(
-    slot: number,
-    updater: (selection: FranchiseSelection) => FranchiseSelection
-  ) {
-    setSelections((currentSelections) =>
-      currentSelections.map((selection) =>
-        selection.slot === slot ? updater(selection) : selection
-      )
-    );
+  async function updateTeam(slot: number, teamId: string) {
+    setSavingSlot(slot);
+    setErrorMessage(null);
+
+    try {
+      setSelections(
+        await requestFranchiseSelections({
+          body: JSON.stringify({ slot, teamId: teamId || null }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH"
+        })
+      );
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+    } finally {
+      setSavingSlot(null);
+    }
   }
 
-  function updateTeam(slot: number, teamId: string) {
-    updateSelection(slot, (selection) => ({
-      ...selection,
-      teamId: teamId || null
-    }));
-  }
+  async function resetSelections() {
+    setSavingSlot(0);
+    setErrorMessage(null);
 
-  function resetSelections() {
-    setSelections(createDraftSlots(NBA_TEAMS.length));
+    try {
+      setSelections(await requestFranchiseSelections({ method: "DELETE" }));
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+    } finally {
+      setSavingSlot(null);
+    }
   }
 
   return (
@@ -87,17 +107,25 @@ export function FranchiseSelectionBoard() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions franchises">
-          <button className="secondary-action" onClick={resetSelections}>
+          <button
+            className="secondary-action"
+            disabled={isLoading || savingSlot !== null}
+            onClick={resetSelections}
+          >
             Réinitialiser
           </button>
           <Link className="primary-action" href="/draft/redraft">
             Ouvrir redraft
           </Link>
-          <Link className="tertiary-action" href="/draft">
-            Board draft
-          </Link>
         </div>
       </div>
+
+      {errorMessage ? (
+        <div className="empty-state" role="alert">
+          <strong>Franchises indisponibles</strong>
+          <p>{errorMessage}</p>
+        </div>
+      ) : null}
 
       <div className="summary-strip" aria-label="Résumé franchises">
         <div>
@@ -116,7 +144,7 @@ export function FranchiseSelectionBoard() {
         </div>
         <div>
           <span>Source</span>
-          <strong>Tirage externe</strong>
+          <strong>{isLoading ? "Chargement" : "Base DB"}</strong>
         </div>
       </div>
 
@@ -151,6 +179,7 @@ export function FranchiseSelectionBoard() {
                           updateTeam(selection.slot, event.target.value)
                         }
                         value={selection.teamId ?? ""}
+                        disabled={isLoading || savingSlot !== null}
                       >
                         <option value="">Franchise à choisir</option>
                         {NBA_TEAMS.map((team) => (
@@ -169,7 +198,11 @@ export function FranchiseSelectionBoard() {
                     </div>
                   </td>
                   <td className="status-cell">
-                    {selectedTeam ? selectedTeam.abbreviation : "Libre"}
+                    {savingSlot === selection.slot
+                      ? "Sauvegarde"
+                      : selectedTeam
+                        ? selectedTeam.abbreviation
+                        : "Libre"}
                   </td>
                 </tr>
               );
@@ -187,4 +220,27 @@ function findTeam(teamId: string | null) {
 
 function TeamLogo({ team }: { team: Team }) {
   return <img src={team.logoUrl} alt="" className="team-logo" loading="lazy" />;
+}
+
+async function requestFranchiseSelections(init?: RequestInit) {
+  const response = await fetch("/api/franchise-selections", init);
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as FranchiseSelectionsApiResponse;
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Impossible de sauvegarder les franchises.");
+  }
+
+  if (!Array.isArray(payload.selections)) {
+    throw new Error("Reponse franchises invalide.");
+  }
+
+  return payload.selections;
+}
+
+function toErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Impossible de charger les franchises.";
 }

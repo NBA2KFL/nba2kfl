@@ -30,8 +30,8 @@ export function LotterySimulator() {
           <h2 id="lottery-title">2026 NBA Draft Lottery Simulator</h2>
           <p className="lottery-copy">
             Tirage équitable: chaque franchise a la même chance d'obtenir
-            n'importe quel rang. Le dernier résultat est partagé avec la page
-            Draft.
+            n'importe quel rang. Le dernier résultat reste sauvegardé pour le
+            workflow franchises et redraft.
           </p>
         </div>
 
@@ -54,8 +54,8 @@ export function LotterySimulator() {
           >
             Réinitialiser
           </button>
-          <Link className="tertiary-action" href="/draft">
-            Voir la draft
+          <Link className="tertiary-action" href="/draft/franchises">
+            Franchises
           </Link>
         </div>
       </div>
@@ -140,7 +140,7 @@ export function LotterySimulator() {
           <strong>Aucun tirage lancé</strong>
           <p>
             Lance une simulation pour générer les 30 positions, les sauvegarder
-            en base et alimenter la page Draft.
+            en base et alimenter le workflow franchises.
           </p>
         </div>
       )}

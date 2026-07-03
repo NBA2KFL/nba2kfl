@@ -7,7 +7,7 @@ export default function LotteryPage() {
     <main className="app-shell">
       <AppHeader
         activeHref="/lotterie"
-        description="Lance le tirage, vérifie les chances et prépare le board de draft."
+        description="Lance le tirage, vérifie les chances et prépare le workflow redraft."
         eyebrow="NBA2KFL Draft Room"
         title="Lotterie"
       />

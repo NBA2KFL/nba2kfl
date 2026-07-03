@@ -5,8 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
 import {
   createSnakeDraftPicks,
-  FRANCHISE_SELECTION_STORAGE_KEY,
-  parseFranchiseSelections,
   REDRAFT_PICKS_STORAGE_KEY,
   REDRAFT_PLAYER_POOL_STORAGE_KEY,
   type FranchiseSelection,
@@ -19,9 +17,12 @@ const DEFAULT_PLAYER_POOL = Array.from(
   { length: NBA_TEAMS.length * DEFAULT_ROUNDS },
   (_, index) => `Joueur ${index + 1}`
 ).join("\n");
-const TEAM_IDS = NBA_TEAMS.map((team) => team.id);
 
 type PicksByNumber = Record<string, string>;
+type FranchiseSelectionsApiResponse = {
+  selections?: FranchiseSelection[];
+  error?: string;
+};
 
 export function RedraftRoom() {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
@@ -29,32 +30,57 @@ export function RedraftRoom() {
   const [playerPoolText, setPlayerPoolText] = useState(DEFAULT_PLAYER_POOL);
   const [picksByNumber, setPicksByNumber] = useState<PicksByNumber>({});
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [selectionLoadError, setSelectionLoadError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
-    const restoredSelections = parseFranchiseSelections(
-      window.localStorage.getItem(FRANCHISE_SELECTION_STORAGE_KEY),
-      NBA_TEAMS.length,
-      TEAM_IDS
-    );
-    const restoredRounds = Number(
-      window.localStorage.getItem(REDRAFT_ROUNDS_STORAGE_KEY)
-    );
-    const restoredPicks = parseStoredPicks(
-      window.localStorage.getItem(REDRAFT_PICKS_STORAGE_KEY)
-    );
+    let isMounted = true;
 
-    setSelections(restoredSelections ?? []);
-    setRounds(
-      Number.isInteger(restoredRounds) && restoredRounds >= 1
-        ? Math.min(restoredRounds, 8)
-        : DEFAULT_ROUNDS
-    );
-    setPlayerPoolText(
-      window.localStorage.getItem(REDRAFT_PLAYER_POOL_STORAGE_KEY) ??
-        DEFAULT_PLAYER_POOL
-    );
-    setPicksByNumber(restoredPicks);
-    setHasLoaded(true);
+    async function restoreDraftState() {
+      const restoredRounds = Number(
+        window.localStorage.getItem(REDRAFT_ROUNDS_STORAGE_KEY)
+      );
+      const restoredPicks = parseStoredPicks(
+        window.localStorage.getItem(REDRAFT_PICKS_STORAGE_KEY)
+      );
+
+      try {
+        const restoredSelections = await requestFranchiseSelections();
+
+        if (isMounted) {
+          setSelections(restoredSelections);
+          setSelectionLoadError(null);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSelections([]);
+          setSelectionLoadError(toErrorMessage(error));
+        }
+      }
+
+      if (!isMounted) {
+        return;
+      }
+
+      setRounds(
+        Number.isInteger(restoredRounds) && restoredRounds >= 1
+          ? Math.min(restoredRounds, 8)
+          : DEFAULT_ROUNDS
+      );
+      setPlayerPoolText(
+        window.localStorage.getItem(REDRAFT_PLAYER_POOL_STORAGE_KEY) ??
+          DEFAULT_PLAYER_POOL
+      );
+      setPicksByNumber(restoredPicks);
+      setHasLoaded(true);
+    }
+
+    restoreDraftState();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -129,9 +155,6 @@ export function RedraftRoom() {
           <Link className="primary-action" href="/draft/franchises">
             Franchises
           </Link>
-          <Link className="tertiary-action" href="/draft">
-            Board draft
-          </Link>
         </div>
       </div>
 
@@ -157,11 +180,15 @@ export function RedraftRoom() {
       </div>
 
       {draftPicks.length === 0 ? (
-        <div className="empty-state">
-          <strong>Aucune franchise attribuée</strong>
+        <div className="empty-state" role={selectionLoadError ? "alert" : undefined}>
+          <strong>
+            {selectionLoadError
+              ? "Franchises indisponibles"
+              : "Aucune franchise attribuée"}
+          </strong>
           <p>
-            Enregistre au moins une franchise sur la page Franchises pour ouvrir
-            la redraft.
+            {selectionLoadError ??
+              "Enregistre au moins une franchise sur la page Franchises pour ouvrir la redraft."}
           </p>
           <Link className="primary-action inline-action" href="/draft/franchises">
             Choisir les franchises
@@ -339,4 +366,27 @@ function parseStoredPicks(storedValue: string | null): PicksByNumber {
 
 function TeamLogo({ team }: { team: Team }) {
   return <img src={team.logoUrl} alt="" className="team-logo" loading="lazy" />;
+}
+
+async function requestFranchiseSelections() {
+  const response = await fetch("/api/franchise-selections");
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as FranchiseSelectionsApiResponse;
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Impossible de charger les franchises.");
+  }
+
+  if (!Array.isArray(payload.selections)) {
+    throw new Error("Reponse franchises invalide.");
+  }
+
+  return payload.selections;
+}
+
+function toErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Impossible de charger les franchises.";
 }

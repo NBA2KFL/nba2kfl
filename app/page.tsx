@@ -8,7 +8,7 @@ export default function Home() {
     <main className="app-shell">
       <AppHeader
         activeHref="/"
-        description="Accueil central pour lancer la lotterie ou consulter le board draft."
+        description="Accueil central pour lancer la lotterie et gérer le workflow NBA2KFL."
         eyebrow="NBA2KFL Draft Room"
         title="Accueil"
       />
@@ -16,11 +16,10 @@ export default function Home() {
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-copy">
           <p className="section-label">Draft operations</p>
-          <h2 id="home-title">Simule la lotterie, puis lis l'ordre de draft.</h2>
+          <h2 id="home-title">Simule la lotterie, puis prépare la redraft.</h2>
           <p>
-            L'app est structurée autour de la lotterie, du board draft, de la
-            sélection des franchises par les GMs et de la redraft joueurs en
-            snake mode.
+            L'app est structurée autour de la lotterie, de la sélection des
+            franchises par les GMs et de la redraft joueurs en snake mode.
           </p>
 
           <div className="home-actions" aria-label="Actions principales">
@@ -44,7 +43,7 @@ export default function Home() {
           </div>
           <div>
             <span>Pages</span>
-            <strong>5</strong>
+            <strong>4</strong>
           </div>
           <div className="logo-strip" aria-hidden="true">
             {NBA_TEAMS.slice(0, 8).map((team) => (
@@ -60,7 +59,7 @@ export default function Home() {
           <h2>Tirage équitable</h2>
           <p>
             Chaque franchise garde la même probabilité. Le résultat est
-            sauvegardé localement pour être relu sur le board.
+            sauvegardé pour alimenter la suite du workflow.
           </p>
         </div>
         <div>

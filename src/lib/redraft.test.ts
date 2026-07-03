@@ -4,6 +4,7 @@ import {
   createDraftSlots,
   createSnakeDraftPicks,
   DEFAULT_GM_DRAFT_ORDER,
+  GM_DRAFT_SLOT_LINKS,
   parseFranchiseSelections,
   type FranchiseSelection
 } from "./redraft";
@@ -27,6 +28,33 @@ const selections: FranchiseSelection[] = [
 ];
 
 describe("createDraftSlots", () => {
+  it("links the 30 GM draft slots to the 25 auth users", () => {
+    expect(GM_DRAFT_SLOT_LINKS).toHaveLength(30);
+    expect(
+      new Set(GM_DRAFT_SLOT_LINKS.map((slot) => slot.userEmail))
+    ).toHaveLength(25);
+    expect(GM_DRAFT_SLOT_LINKS[2]).toMatchObject({
+      gmName: "Nico 2e équipe",
+      userName: "Nico",
+      userEmail: "nico@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[3]).toMatchObject({
+      gmName: "Clem 2e équipe",
+      userName: "Clem",
+      userEmail: "clem@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[5]).toMatchObject({
+      gmName: "Math",
+      userName: "Mat Presti",
+      userEmail: "mat-presti@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[28]).toMatchObject({
+      gmName: "Mat 2e équipe",
+      userName: "Mat Presti",
+      userEmail: "mat-presti@nba2kfl.local"
+    });
+  });
+
   it("uses the configured NBA2KFL GM draft order by default", () => {
     const slots = createDraftSlots();
 
