@@ -24,18 +24,31 @@ export function DraftBoard() {
   const remainingPicks = draftOrder.slice(14);
 
   return (
-    <section className="lottery-panel draft-panel" aria-labelledby="draft-title">
-      <div className="lottery-header">
+    <section
+      aria-labelledby="draft-title"
+      className="min-w-0 overflow-hidden rounded-[18px] border border-command-border bg-command-surface shadow-[0_18px_48px_rgba(16,24,40,0.08)]"
+    >
+      <div className="grid grid-cols-[minmax(0,1fr)_232px] items-start gap-6 border-b border-command-border bg-command-surface p-5 max-[1040px]:grid-cols-1 max-[620px]:p-4">
         <div>
-          <p className="section-label">Draft board</p>
-          <h2 id="draft-title">Ordre complet de la draft</h2>
-          <p className="lottery-copy">
+          <p className="mb-1 text-[0.64rem] font-[760] leading-none uppercase tracking-[0.14em] text-command-muted">
+            Draft board
+          </p>
+          <h2
+            className="mb-2 text-[1.33rem] font-[730] leading-[1.08] tracking-[-0.045em] text-command-ink max-[620px]:text-[1.18rem]"
+            id="draft-title"
+          >
+            Ordre complet de la draft
+          </h2>
+          <p className="mb-0 max-w-[720px] text-[0.9rem] leading-[1.56] text-command-muted-strong max-[620px]:text-[0.88rem]">
             Le board reprend le dernier tirage enregistré. Tu peux aussi
             générer un nouvel ordre directement depuis cette page.
           </p>
         </div>
 
-        <div className="lottery-actions" aria-label="Actions draft">
+        <div
+          aria-label="Actions draft"
+          className="grid w-full gap-2 max-[1040px]:grid-cols-3 max-[620px]:grid-cols-1"
+        >
           <Button
             disabled={DRAFT_LOTTERY_GENERATION_LOCKED || isLoading}
             onClick={runSimulation}
@@ -59,22 +72,39 @@ export function DraftBoard() {
         </div>
       </div>
 
-      <div className="summary-strip" aria-label="Résumé draft">
-        <div>
-          <span>Picks</span>
-          <strong>{hasResult ? draftOrder.length : 0}/30</strong>
+      <div
+        aria-label="Résumé draft"
+        className="grid grid-cols-4 border-b border-command-border bg-command-surface-muted/55 max-[1040px]:grid-cols-2 max-[620px]:grid-cols-1"
+      >
+        <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[1040px]:border-b max-[1040px]:border-command-border max-[620px]:border-r-0">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Picks
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
+            {hasResult ? draftOrder.length : 0}/30
+          </strong>
         </div>
-        <div>
-          <span>Lottery picks</span>
-          <strong>{hasResult ? lotteryPicks.length : 0}</strong>
+        <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[1040px]:border-r-0 max-[1040px]:border-b max-[1040px]:border-command-border">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Lottery picks
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
+            {hasResult ? lotteryPicks.length : 0}
+          </strong>
         </div>
-        <div>
-          <span>Dernier tirage</span>
-          <strong>{formatRunDate(lastRunAt)}</strong>
+        <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[620px]:border-r-0 max-[620px]:border-b max-[620px]:border-command-border">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Dernier tirage
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
+            {formatRunDate(lastRunAt)}
+          </strong>
         </div>
-        <div>
-          <span>Statut</span>
-          <strong>
+        <div className="min-h-[64px] px-4 py-3">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Statut
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
             {DRAFT_LOTTERY_GENERATION_LOCKED
               ? "Verrouillée"
               : isLoading
@@ -87,19 +117,25 @@ export function DraftBoard() {
       </div>
 
       {DRAFT_LOTTERY_GENERATION_LOCKED ? (
-        <div className="lock-state" role="status">
+        <div
+          className="border-b border-command-warning-border bg-command-warning-soft px-4 py-3 text-[0.86rem] font-[680] text-command-warning-text"
+          role="status"
+        >
           {DRAFT_LOTTERY_LOCKED_MESSAGE}
         </div>
       ) : null}
 
       {error ? (
-        <div className="error-state" role="alert">
+        <div
+          className="border-b border-command-red-border bg-command-red-soft px-4 py-3 text-[0.86rem] font-[680] text-command-red-text"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
 
       {hasResult ? (
-        <div className="draft-rounds">
+        <div className="grid gap-3.5 p-4 max-[620px]:p-3">
           <DraftRound
             startPick={1}
             teams={lotteryPicks}
@@ -112,9 +148,11 @@ export function DraftBoard() {
           />
         </div>
       ) : (
-        <div className="empty-state">
-          <strong>Aucun ordre de draft</strong>
-          <p>
+        <div className="grid min-h-[300px] content-center justify-items-center gap-2.5 p-8 text-center">
+          <strong className="text-[1.04rem] font-[740] tracking-[-0.025em] text-command-ink">
+            Aucun ordre de draft
+          </strong>
+          <p className="m-0 max-w-[470px] leading-[1.56] text-command-muted-strong">
             Lance une simulation ici ou depuis la page Lotterie pour remplir le
             board.
           </p>
@@ -134,19 +172,44 @@ function DraftRound({
   title: string;
 }) {
   return (
-    <section className="draft-round" aria-labelledby={`round-${startPick}`}>
-      <div className="draft-round-heading">
-        <h3 id={`round-${startPick}`}>{title}</h3>
-        <span>{teams.length} picks</span>
+    <section
+      aria-labelledby={`round-${startPick}`}
+      className="overflow-hidden rounded-[14px] border border-command-border bg-command-surface"
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-command-border bg-command-surface-muted px-3.5 py-2.5">
+        <h3
+          className="mb-0 text-[0.84rem] font-[720] text-command-ink"
+          id={`round-${startPick}`}
+        >
+          {title}
+        </h3>
+        <span className="text-[0.72rem] font-[670] text-command-muted">
+          {teams.length} picks
+        </span>
       </div>
-      <ol className="draft-pick-list">
+      <ol className="m-0 grid list-none p-0">
         {teams.map((team, index) => (
-          <li className="draft-pick-row" key={team.id}>
-            <span className="pick-cell">{startPick + index}</span>
-            <img src={team.logoUrl} alt="" className="team-logo" />
-            <span className="draft-team-name">{team.name}</span>
-            <strong>{team.abbreviation}</strong>
-            <span>{team.conference}</span>
+          <li
+            className="grid min-h-[48px] grid-cols-[50px_32px_minmax(0,1fr)_56px_56px] items-center gap-2.5 border-b border-command-border px-3.5 py-2 last:border-b-0 odd:bg-command-surface-muted/45 hover:bg-command-accent-soft/65 max-[620px]:grid-cols-[42px_30px_minmax(120px,1fr)_48px]"
+            key={team.id}
+          >
+            <span className="w-16 text-[0.98rem] font-[760] text-command-accent-dark">
+              {startPick + index}
+            </span>
+            <img
+              alt=""
+              className="h-[28px] w-[28px] shrink-0 object-contain"
+              src={team.logoUrl}
+            />
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap font-[700] text-command-ink">
+              {team.name}
+            </span>
+            <strong className="text-[0.76rem] font-[650] text-command-muted">
+              {team.abbreviation}
+            </strong>
+            <span className="text-[0.76rem] font-[650] text-command-muted max-[620px]:hidden">
+              {team.conference}
+            </span>
           </li>
         ))}
       </ol>
