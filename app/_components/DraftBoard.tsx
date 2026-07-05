@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Team } from "@/data/teams";
+import { Button } from "@/components/ui/button";
 import {
   DRAFT_LOTTERY_GENERATION_LOCKED,
   DRAFT_LOTTERY_LOCKED_MESSAGE,
@@ -35,8 +36,7 @@ export function DraftBoard() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions draft">
-          <button
-            className="primary-action"
+          <Button
             disabled={DRAFT_LOTTERY_GENERATION_LOCKED || isLoading}
             onClick={runSimulation}
           >
@@ -45,17 +45,17 @@ export function DraftBoard() {
               : isLoading
                 ? "Connexion DB"
                 : "Générer un ordre"}
-          </button>
-          <button
-            className="secondary-action"
+          </Button>
+          <Button
             disabled={DRAFT_LOTTERY_VIEW_RESET_LOCKED || !hasResult || isLoading}
             onClick={resetSimulation}
+            variant="secondary"
           >
             Réinitialiser
-          </button>
-          <Link className="tertiary-action" href="/lotterie">
-            Retour lotterie
-          </Link>
+          </Button>
+          <Button asChild variant="tertiary">
+            <Link href="/lotterie">Retour lotterie</Link>
+          </Button>
         </div>
       </div>
 

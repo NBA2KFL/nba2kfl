@@ -3,10 +3,20 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import {
   createDraftSlots,
   type FranchiseSelection
 } from "@/lib/redraft";
+
+const NO_TEAM_SELECTED = "__none__";
 
 type FranchiseSelectionsApiResponse = {
   selections?: FranchiseSelection[];
@@ -107,16 +117,16 @@ export function FranchiseSelectionBoard() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions franchises">
-          <button
-            className="secondary-action"
+          <Button
             disabled={isLoading || savingSlot !== null}
             onClick={resetSelections}
+            variant="secondary"
           >
             Réinitialiser
-          </button>
-          <Link className="primary-action" href="/draft/redraft">
-            Ouvrir redraft
-          </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/draft/redraft">Ouvrir redraft</Link>
+          </Button>
         </div>
       </div>
 
@@ -172,29 +182,39 @@ export function FranchiseSelectionBoard() {
                   <td>
                     <div className="selection-team-control">
                       {selectedTeam ? <TeamLogo team={selectedTeam} /> : null}
-                      <select
-                        aria-label={`Franchise du rang ${selection.slot}`}
-                        className="control-select"
-                        onChange={(event) =>
-                          updateTeam(selection.slot, event.target.value)
-                        }
-                        value={selection.teamId ?? ""}
+                      <Select
                         disabled={isLoading || savingSlot !== null}
+                        onValueChange={(value) =>
+                          updateTeam(
+                            selection.slot,
+                            value === NO_TEAM_SELECTED ? "" : value
+                          )
+                        }
+                        value={selection.teamId ?? NO_TEAM_SELECTED}
                       >
-                        <option value="">Franchise à choisir</option>
-                        {NBA_TEAMS.map((team) => (
-                          <option
-                            disabled={
-                              selectedTeamIds.has(team.id) &&
-                              team.id !== selection.teamId
-                            }
-                            key={team.id}
-                            value={team.id}
-                          >
-                            {team.abbreviation} - {team.name}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          aria-label={`Franchise du rang ${selection.slot}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_TEAM_SELECTED}>
+                            Franchise à choisir
+                          </SelectItem>
+                          {NBA_TEAMS.map((team) => (
+                            <SelectItem
+                              disabled={
+                                selectedTeamIds.has(team.id) &&
+                                team.id !== selection.teamId
+                              }
+                              key={team.id}
+                              value={team.id}
+                            >
+                              {team.abbreviation} - {team.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </td>
                   <td className="status-cell">

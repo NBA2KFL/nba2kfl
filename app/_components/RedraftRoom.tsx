@@ -3,6 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import {
   createSnakeDraftPicks,
   REDRAFT_PICKS_STORAGE_KEY,
@@ -11,6 +20,7 @@ import {
   type SnakeDraftPick
 } from "@/lib/redraft";
 
+const NO_PLAYER_SELECTED = "__none__";
 const DEFAULT_ROUNDS = 4;
 const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
 const DEFAULT_PLAYER_POOL = Array.from(
@@ -149,12 +159,12 @@ export function RedraftRoom() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions redraft">
-          <button className="secondary-action" onClick={clearPicks}>
+          <Button onClick={clearPicks} variant="secondary">
             Vider picks
-          </button>
-          <Link className="primary-action" href="/draft/franchises">
-            Franchises
-          </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/draft/franchises">Franchises</Link>
+          </Button>
         </div>
       </div>
 
@@ -190,17 +200,16 @@ export function RedraftRoom() {
             {selectionLoadError ??
               "Enregistre au moins une franchise sur la page Franchises pour ouvrir la redraft."}
           </p>
-          <Link className="primary-action inline-action" href="/draft/franchises">
-            Choisir les franchises
-          </Link>
+          <Button asChild className="inline-action">
+            <Link href="/draft/franchises">Choisir les franchises</Link>
+          </Button>
         </div>
       ) : (
         <div className="redraft-workspace">
           <aside className="redraft-controls" aria-label="Configuration redraft">
             <label className="field-stack">
               <span>Tours</span>
-              <input
-                className="control-input"
+              <Input
                 max={8}
                 min={1}
                 onChange={(event) => updateRounds(event.target.value)}
@@ -277,19 +286,24 @@ function RedraftPickRow({
         </div>
       </div>
 
-      <select
-        aria-label={`Joueur du pick ${pick.pickNumber}`}
-        className="control-select"
-        onChange={(event) => onChange(pick.pickNumber, event.target.value)}
-        value={selectedPlayer}
+      <Select
+        onValueChange={(value) =>
+          onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
+        }
+        value={selectedPlayer || NO_PLAYER_SELECTED}
       >
-        <option value="">Choisir joueur</option>
-        {playerOptions.map((playerName) => (
-          <option key={playerName} value={playerName}>
-            {playerName}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label={`Joueur du pick ${pick.pickNumber}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
+          {playerOptions.map((playerName) => (
+            <SelectItem key={playerName} value={playerName}>
+              {playerName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </li>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { NBA_TEAMS } from "@/data/teams";
+import { Button } from "@/components/ui/button";
 import {
   DRAFT_LOTTERY_GENERATION_LOCKED,
   DRAFT_LOTTERY_LOCKED_MESSAGE,
@@ -36,8 +37,7 @@ export function LotterySimulator() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions de tirage">
-          <button
-            className="primary-action"
+          <Button
             disabled={DRAFT_LOTTERY_GENERATION_LOCKED || isLoading}
             onClick={runSimulation}
           >
@@ -46,17 +46,17 @@ export function LotterySimulator() {
               : isLoading
                 ? "Connexion DB"
                 : "Simuler la lotterie"}
-          </button>
-          <button
-            className="secondary-action"
+          </Button>
+          <Button
             disabled={DRAFT_LOTTERY_VIEW_RESET_LOCKED || !hasResult || isLoading}
             onClick={resetSimulation}
+            variant="secondary"
           >
             Réinitialiser
-          </button>
-          <Link className="tertiary-action" href="/draft/franchises">
-            Franchises
-          </Link>
+          </Button>
+          <Button asChild variant="tertiary">
+            <Link href="/draft/franchises">Franchises</Link>
+          </Button>
         </div>
       </div>
 

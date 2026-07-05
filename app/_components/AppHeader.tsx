@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { APP_NAV_ITEMS, type AppRoute } from "@/lib/navigation";
 
 type AppHeaderProps = {
@@ -27,18 +28,21 @@ export function AppHeader({
         </div>
       </div>
 
-      <nav className="top-tabs" aria-label="Navigation principale">
-        {APP_NAV_ITEMS.map((item) => (
-          <Link
-            aria-current={item.href === activeHref ? "page" : undefined}
-            className={`top-tab${item.href === activeHref ? " is-active" : ""}`}
-            href={item.href}
-            key={item.href}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <div className="header-actions">
+        <nav className="top-tabs" aria-label="Navigation principale">
+          {APP_NAV_ITEMS.map((item) => (
+            <Link
+              aria-current={item.href === activeHref ? "page" : undefined}
+              className={`top-tab${item.href === activeHref ? " is-active" : ""}`}
+              href={item.href}
+              key={item.href}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

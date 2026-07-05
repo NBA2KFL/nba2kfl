@@ -2,6 +2,8 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -72,7 +74,7 @@ export function SignInForm({ callbackURL }: SignInFormProps) {
       {mode === "sign-up" ? (
         <label className="field-stack">
           <span>Nom</span>
-          <input
+          <Input
             autoComplete="name"
             onChange={(event) => setName(event.target.value)}
             type="text"
@@ -83,7 +85,7 @@ export function SignInForm({ callbackURL }: SignInFormProps) {
 
       <label className="field-stack">
         <span>Email GM</span>
-        <input
+        <Input
           autoComplete="email"
           onChange={(event) => setEmail(event.target.value)}
           required
@@ -94,7 +96,7 @@ export function SignInForm({ callbackURL }: SignInFormProps) {
 
       <label className="field-stack">
         <span>Mot de passe</span>
-        <input
+        <Input
           autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
           minLength={8}
           onChange={(event) => setPassword(event.target.value)}
@@ -106,13 +108,13 @@ export function SignInForm({ callbackURL }: SignInFormProps) {
 
       {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
 
-      <button className="primary-action" disabled={isPending} type="submit">
+      <Button disabled={isPending} type="submit">
         {isPending
           ? "Traitement..."
           : mode === "sign-in"
             ? "Se connecter"
             : "Creer le compte"}
-      </button>
+      </Button>
     </form>
   );
 }
