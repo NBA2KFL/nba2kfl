@@ -3,6 +3,7 @@ export type AppRoute =
   | "/lotterie"
   | "/draft/franchises"
   | "/draft/redraft"
+  | "/franchises"
   | "/sign-in";
 
 export type AppNavItem = {
@@ -36,6 +37,12 @@ export const APP_NAV_ITEMS = [
     label: "Redraft",
     description: "Effectue la draft joueurs avec un ordre snake.",
     ctaLabel: "Lancer la redraft"
+  },
+  {
+    href: "/franchises",
+    label: "Gestion",
+    description: "Administre les propriétaires long terme des franchises.",
+    ctaLabel: "Gérer les propriétaires"
   },
   {
     href: "/sign-in",

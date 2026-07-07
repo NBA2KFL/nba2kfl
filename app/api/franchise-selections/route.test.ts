@@ -1,11 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { getDraftDbClient } from "@/lib/draft-db";
 import {
-  clearFranchiseSelections,
   ensureFranchiseSelectionSchema,
   loadFranchiseSelections,
-  seedGmDraftSlots,
-  updateFranchiseSelection
+  seedGmDraftSlots
 } from "@/lib/franchise-db";
 import { DELETE, GET, PATCH } from "./route";
 
@@ -14,11 +12,9 @@ vi.mock("@/lib/draft-db", () => ({
 }));
 
 vi.mock("@/lib/franchise-db", () => ({
-  clearFranchiseSelections: vi.fn(),
   ensureFranchiseSelectionSchema: vi.fn(),
   loadFranchiseSelections: vi.fn(),
-  seedGmDraftSlots: vi.fn(),
-  updateFranchiseSelection: vi.fn()
+  seedGmDraftSlots: vi.fn()
 }));
 
 const db = { query: vi.fn() };
@@ -45,7 +41,7 @@ describe("franchise selections API", () => {
     expect(loadFranchiseSelections).toHaveBeenCalledWith(db, expect.any(Array));
   });
 
-  it("updates one franchise selection and returns refreshed selections", async () => {
+  it("rejects franchise selection updates while selections are locked", async () => {
     const response = await PATCH(
       new Request("http://localhost/api/franchise-selections", {
         body: JSON.stringify({ slot: 1, teamId: "bos" }),
@@ -54,14 +50,11 @@ describe("franchise selections API", () => {
     );
     const payload = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(payload).toEqual({ selections });
-    expect(updateFranchiseSelection).toHaveBeenCalledWith(
-      db,
-      1,
-      "bos",
-      expect.any(Array)
-    );
+    expect(response.status).toBe(423);
+    expect(payload).toEqual({
+      error: "La selection des franchises est verrouillee."
+    });
+    expect(getDraftDbClient).not.toHaveBeenCalled();
   });
 
   it("rejects invalid update payloads before writing", async () => {
@@ -75,32 +68,16 @@ describe("franchise selections API", () => {
 
     expect(response.status).toBe(400);
     expect(payload).toEqual({ error: "Selection de franchise invalide." });
-    expect(updateFranchiseSelection).not.toHaveBeenCalled();
   });
 
-  it("returns conflict when a selected franchise is already taken", async () => {
-    vi.mocked(updateFranchiseSelection).mockRejectedValue(
-      Object.assign(new Error("duplicate team"), { code: "23505" })
-    );
-
-    const response = await PATCH(
-      new Request("http://localhost/api/franchise-selections", {
-        body: JSON.stringify({ slot: 1, teamId: "bos" }),
-        method: "PATCH"
-      })
-    );
-    const payload = await response.json();
-
-    expect(response.status).toBe(409);
-    expect(payload).toEqual({ error: "Cette franchise est deja attribuee." });
-  });
-
-  it("clears franchise selections and returns refreshed selections", async () => {
+  it("rejects franchise selection resets while selections are locked", async () => {
     const response = await DELETE();
     const payload = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(payload).toEqual({ selections });
-    expect(clearFranchiseSelections).toHaveBeenCalledWith(db);
+    expect(response.status).toBe(423);
+    expect(payload).toEqual({
+      error: "La selection des franchises est verrouillee."
+    });
+    expect(getDraftDbClient).not.toHaveBeenCalled();
   });
 });

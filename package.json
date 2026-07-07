@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "sync:nba2k26-rosters": "node --no-warnings --experimental-strip-types scripts/sync-nba2k26-rosters.ts",
     "test": "vitest run"
   },
   "dependencies": {
