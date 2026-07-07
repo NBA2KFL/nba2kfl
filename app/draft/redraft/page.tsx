@@ -14,7 +14,7 @@ export default async function RedraftPage() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="mx-auto w-[min(1240px,calc(100%-40px))] py-5 pb-10 max-[620px]:w-[min(100%-16px,1240px)] max-[620px]:pt-2.5">
       <AppHeader
         activeHref="/draft/redraft"
         description="Sélectionne les joueurs avec un ordre snake basé sur les franchises attribuées."
@@ -22,7 +22,7 @@ export default async function RedraftPage() {
         title="Redraft"
       />
 
-      <section className="workflow-page" aria-label="Redraft joueurs">
+      <section aria-label="Redraft joueurs" className="mt-4">
         <RedraftRoom />
       </section>
     </main>
