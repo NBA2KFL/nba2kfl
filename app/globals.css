@@ -1,31 +1,101 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --command-bg: #f7f8fb;
+  --command-ink: #0f1117;
+  --command-text: #171a22;
+  --command-muted: #7d8493;
+  --command-muted-strong: #545b6b;
+  --command-border: #e4e7ee;
+  --command-border-strong: #ccd2df;
+  --command-surface: #ffffff;
+  --command-surface-muted: #f4f6fa;
+  --command-accent: #5e6ad2;
+  --command-accent-dark: #4f5ac6;
+  --command-accent-soft: #f0f1ff;
+  --command-cyan: #3b82f6;
+  --command-amber: #d97706;
+  --command-green: #0f9f6e;
+  --command-green-dark: #08734f;
+  --command-green-soft: #eefbf6;
+  --command-red: #dc3f45;
+  --command-red-soft: #fff1f2;
+  --command-red-border: #fecdd3;
+  --command-red-text: #b91c1c;
+  --command-warning-border: #ead080;
+  --command-warning-soft: #fff8df;
+  --command-warning-text: #70570b;
+  --command-grid-line: rgba(15, 17, 23, 0.035);
+  --command-grid-line-strong: rgba(15, 17, 23, 0.028);
+  --command-page-wash-top: rgba(255, 255, 255, 0.98);
+  --command-page-wash-bottom: rgba(247, 248, 251, 0.96);
+  --command-accent-wash-1: rgba(94, 106, 210, 0.06);
+  --command-accent-wash-2: rgba(59, 130, 246, 0.05);
+}
+
+.dark {
+  --command-bg: #0b0f15;
+  --command-ink: #f5f6fb;
+  --command-text: #e4e7ee;
+  --command-muted: #6b7286;
+  --command-muted-strong: #a4abbe;
+  --command-border: #222937;
+  --command-border-strong: #2e3648;
+  --command-surface: #151b26;
+  --command-surface-muted: #111620;
+  --command-accent: #5e6ad2;
+  --command-accent-dark: #7b86e6;
+  --command-accent-soft: #1b1f38;
+  --command-cyan: #60a5fa;
+  --command-amber: #f59e0b;
+  --command-green: #22c58f;
+  --command-green-dark: #4ade9d;
+  --command-green-soft: #0e2620;
+  --command-red: #f36065;
+  --command-red-soft: #2a1316;
+  --command-red-border: #5c2328;
+  --command-red-text: #fca5a5;
+  --command-warning-border: #6b551f;
+  --command-warning-soft: #241d0c;
+  --command-warning-text: #f2cf6b;
+  --command-grid-line: rgba(255, 255, 255, 0.045);
+  --command-grid-line-strong: rgba(255, 255, 255, 0.035);
+  --command-page-wash-top: rgba(21, 27, 38, 0.9);
+  --command-page-wash-bottom: rgba(11, 15, 21, 0.94);
+  --command-accent-wash-1: rgba(94, 106, 210, 0.1);
+  --command-accent-wash-2: rgba(59, 130, 246, 0.08);
+}
+
+@theme inline {
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Arial, Helvetica, sans-serif;
 
-  --color-command-bg: #f7f8fb;
-  --color-command-ink: #0f1117;
-  --color-command-text: #171a22;
-  --color-command-muted: #7d8493;
-  --color-command-muted-strong: #545b6b;
-  --color-command-border: #e4e7ee;
-  --color-command-border-strong: #ccd2df;
-  --color-command-surface: #ffffff;
-  --color-command-surface-muted: #f4f6fa;
-  --color-command-accent: #5e6ad2;
-  --color-command-accent-dark: #4f5ac6;
-  --color-command-accent-soft: #f0f1ff;
-  --color-command-cyan: #3b82f6;
-  --color-command-amber: #d97706;
-  --color-command-green: #0f9f6e;
-  --color-command-green-dark: #08734f;
-  --color-command-green-soft: #eefbf6;
-  --color-command-red: #dc3f45;
-  --color-command-red-soft: #fff1f2;
-  --color-command-warning-border: #ead080;
-  --color-command-warning-soft: #fff8df;
-  --color-command-warning-text: #70570b;
+  --color-command-bg: var(--command-bg);
+  --color-command-ink: var(--command-ink);
+  --color-command-text: var(--command-text);
+  --color-command-muted: var(--command-muted);
+  --color-command-muted-strong: var(--command-muted-strong);
+  --color-command-border: var(--command-border);
+  --color-command-border-strong: var(--command-border-strong);
+  --color-command-surface: var(--command-surface);
+  --color-command-surface-muted: var(--command-surface-muted);
+  --color-command-accent: var(--command-accent);
+  --color-command-accent-dark: var(--command-accent-dark);
+  --color-command-accent-soft: var(--command-accent-soft);
+  --color-command-cyan: var(--command-cyan);
+  --color-command-amber: var(--command-amber);
+  --color-command-green: var(--command-green);
+  --color-command-green-dark: var(--command-green-dark);
+  --color-command-green-soft: var(--command-green-soft);
+  --color-command-red: var(--command-red);
+  --color-command-red-soft: var(--command-red-soft);
+  --color-command-red-border: var(--command-red-border);
+  --color-command-red-text: var(--command-red-text);
+  --color-command-warning-border: var(--command-warning-border);
+  --color-command-warning-soft: var(--command-warning-soft);
+  --color-command-warning-text: var(--command-warning-text);
 }
 
 @layer base {
@@ -38,10 +108,10 @@
   }
 
   body {
-    @apply m-0 min-h-screen bg-command-bg font-sans text-[14px] leading-normal text-command-text antialiased;
+    @apply m-0 min-h-screen bg-command-bg font-sans text-[14px] leading-normal text-command-text antialiased transition-colors duration-150;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 251, 0.96) 280px),
-      linear-gradient(90deg, rgba(94, 106, 210, 0.06), transparent 38%, rgba(59, 130, 246, 0.05)),
+      linear-gradient(180deg, var(--command-page-wash-top), var(--command-page-wash-bottom) 280px),
+      linear-gradient(90deg, var(--command-accent-wash-1), transparent 38%, var(--command-accent-wash-2)),
       var(--color-command-bg);
   }
 
@@ -49,8 +119,8 @@
     @apply pointer-events-none fixed inset-0 -z-10 opacity-70;
     content: "";
     background:
-      linear-gradient(rgba(15, 17, 23, 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(15, 17, 23, 0.028) 1px, transparent 1px);
+      linear-gradient(var(--command-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--command-grid-line-strong) 1px, transparent 1px);
     background-size: 32px 32px;
     mask-image: linear-gradient(180deg, #000 0, transparent 560px);
   }
@@ -82,6 +152,7 @@
   }
 
   h1 {
+<<<<<<< HEAD
     @apply mb-0 text-[clamp(1.45rem,2.1vw,2rem)] font-[720] leading-[1.04] tracking-[-0.035em] text-command-ink;
   }
 }
@@ -810,5 +881,8 @@
     .side-panel-heading {
       @apply -mx-3 -mt-3 mb-3 px-3 py-3.5;
     }
+=======
+    @apply mb-0 text-[clamp(1.45rem,2.1vw,2rem)] font-[720] leading-[1.04] tracking-[-0.035em] text-command-ink max-[620px]:text-[1.55rem];
+>>>>>>> 58c7379170c8db82032247a2ea1d7b11974e7fa2
   }
 }

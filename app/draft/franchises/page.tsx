@@ -14,7 +14,7 @@ export default async function FranchiseSelectionPage() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="mx-auto w-[min(1240px,calc(100%-40px))] py-5 pb-10 max-[620px]:w-[min(100%-16px,1240px)] max-[620px]:pt-2.5">
       <AppHeader
         activeHref="/draft/franchises"
         description="Attribue les franchises NBA aux GMs selon le rang tiré au sort hors app."
@@ -22,7 +22,7 @@ export default async function FranchiseSelectionPage() {
         title="Franchises"
       />
 
-      <section className="workflow-page" aria-label="Sélection des franchises">
+      <section aria-label="Sélection des franchises" className="mt-4">
         <FranchiseSelectionBoard />
       </section>
     </main>

@@ -3,6 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   createSnakeDraftPicks,
   REDRAFT_PICKS_STORAGE_KEY,
@@ -11,6 +21,7 @@ import {
   type SnakeDraftPick
 } from "@/lib/redraft";
 
+const NO_PLAYER_SELECTED = "__none__";
 const DEFAULT_ROUNDS = 4;
 const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
 const DEFAULT_PLAYER_POOL = Array.from(
@@ -137,70 +148,107 @@ export function RedraftRoom() {
   }
 
   return (
-    <section className="lottery-panel workflow-panel" aria-labelledby="redraft-title">
-      <div className="lottery-header">
+    <section
+      aria-labelledby="redraft-title"
+      className="min-w-0 overflow-hidden rounded-[18px] border border-command-border bg-command-surface shadow-[0_18px_48px_rgba(16,24,40,0.08)]"
+    >
+      <div className="grid grid-cols-[minmax(0,1fr)_232px] items-start gap-6 border-b border-command-border bg-command-surface p-5 max-[1040px]:grid-cols-1 max-[620px]:p-4">
         <div>
-          <p className="section-label">Redraft joueurs</p>
-          <h2 id="redraft-title">Draft snake NBA2KFL</h2>
-          <p className="lottery-copy">
+          <p className="mb-1 text-[0.64rem] font-[760] leading-none uppercase tracking-[0.14em] text-command-muted">
+            Redraft joueurs
+          </p>
+          <h2
+            className="mb-2 text-[1.33rem] font-[730] leading-[1.08] tracking-[-0.045em] text-command-ink max-[620px]:text-[1.18rem]"
+            id="redraft-title"
+          >
+            Draft snake NBA2KFL
+          </h2>
+          <p className="mb-0 max-w-[720px] text-[0.9rem] leading-[1.56] text-command-muted-strong max-[620px]:text-[0.88rem]">
             Le tour 1 suit l'ordre des franchises, le tour 2 repart en sens
             inverse, puis l'alternance continue.
           </p>
         </div>
 
-        <div className="lottery-actions" aria-label="Actions redraft">
-          <button className="secondary-action" onClick={clearPicks}>
+        <div
+          aria-label="Actions redraft"
+          className="grid w-full gap-2 max-[1040px]:grid-cols-3 max-[620px]:grid-cols-1"
+        >
+          <Button onClick={clearPicks} variant="secondary">
             Vider picks
-          </button>
-          <Link className="primary-action" href="/draft/franchises">
-            Franchises
-          </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/draft/franchises">Franchises</Link>
+          </Button>
         </div>
       </div>
 
-      <div className="summary-strip" aria-label="Résumé redraft">
-        <div>
-          <span>Franchises</span>
-          <strong>{selections.filter((selection) => selection.teamId).length}</strong>
+      <div
+        aria-label="Résumé redraft"
+        className="grid grid-cols-4 border-b border-command-border bg-command-surface-muted/55 max-[1040px]:grid-cols-2 max-[620px]:grid-cols-1"
+      >
+        <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[1040px]:border-b max-[1040px]:border-command-border max-[620px]:border-r-0">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Franchises
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
+            {selections.filter((selection) => selection.teamId).length}
+          </strong>
         </div>
-        <div>
-          <span>Tours</span>
-          <strong>{rounds}</strong>
+        <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[1040px]:border-r-0 max-[1040px]:border-b max-[1040px]:border-command-border">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Tours
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
+            {rounds}
+          </strong>
         </div>
-        <div>
-          <span>Picks</span>
-          <strong>
+        <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[620px]:border-r-0 max-[620px]:border-b max-[620px]:border-command-border">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Picks
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
             {completedPicks}/{draftPicks.length}
           </strong>
         </div>
-        <div>
-          <span>Sur le clock</span>
-          <strong>{currentPick ? formatSelection(currentPick) : "Terminé"}</strong>
+        <div className="min-h-[64px] px-4 py-3">
+          <span className="mb-1.5 block text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+            Sur le clock
+          </span>
+          <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
+            {currentPick ? formatSelection(currentPick) : "Terminé"}
+          </strong>
         </div>
       </div>
 
       {draftPicks.length === 0 ? (
-        <div className="empty-state" role={selectionLoadError ? "alert" : undefined}>
-          <strong>
+        <div
+          className="grid min-h-[300px] content-center justify-items-center gap-2.5 p-8 text-center"
+          role={selectionLoadError ? "alert" : undefined}
+        >
+          <strong className="text-[1.04rem] font-[740] tracking-[-0.025em] text-command-ink">
             {selectionLoadError
               ? "Franchises indisponibles"
               : "Aucune franchise attribuée"}
           </strong>
-          <p>
+          <p className="m-0 max-w-[470px] leading-[1.56] text-command-muted-strong">
             {selectionLoadError ??
               "Enregistre au moins une franchise sur la page Franchises pour ouvrir la redraft."}
           </p>
-          <Link className="primary-action inline-action" href="/draft/franchises">
-            Choisir les franchises
-          </Link>
+          <Button asChild className="min-w-[220px] px-4">
+            <Link href="/draft/franchises">Choisir les franchises</Link>
+          </Button>
         </div>
       ) : (
-        <div className="redraft-workspace">
-          <aside className="redraft-controls" aria-label="Configuration redraft">
-            <label className="field-stack">
-              <span>Tours</span>
-              <input
-                className="control-input"
+        <div className="grid grid-cols-[300px_minmax(0,1fr)] gap-0 max-[1040px]:grid-cols-1">
+          <aside
+            aria-label="Configuration redraft"
+            className="grid content-start gap-3.5 border-r border-command-border bg-command-surface-muted/45 p-4 max-[1040px]:border-r-0 max-[1040px]:border-b max-[1040px]:border-command-border"
+          >
+            <label className="grid gap-2">
+              <span className="text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+                Tours
+              </span>
+              <Input
                 max={8}
                 min={1}
                 onChange={(event) => updateRounds(event.target.value)}
@@ -209,17 +257,19 @@ export function RedraftRoom() {
               />
             </label>
 
-            <label className="field-stack">
-              <span>Joueurs disponibles</span>
+            <label className="grid gap-2">
+              <span className="text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
+                Joueurs disponibles
+              </span>
               <textarea
-                className="player-pool-input"
+                className="min-h-[330px] w-full resize-y rounded-[10px] border border-command-border bg-command-surface p-3 text-[0.86rem] leading-[1.45] text-command-text shadow-[0_1px_0_rgba(16,24,40,0.03)] transition duration-150 ease-out focus:border-command-accent focus:shadow-[0_0_0_4px_rgba(94,106,210,0.12)] focus:outline-none"
                 onChange={(event) => setPlayerPoolText(event.target.value)}
                 value={playerPoolText}
               />
             </label>
           </aside>
 
-          <ol className="redraft-pick-list">
+          <ol className="m-0 grid list-none p-0">
             {draftPicks.map((pick) => (
               <RedraftPickRow
                 currentPickNumber={currentPick?.pickNumber ?? null}
@@ -255,41 +305,59 @@ function RedraftPickRow({
 }) {
   const team = findTeam(pick.selection.teamId);
   const playerOptions = getPlayerOptions(playerPool, selectedPlayers, selectedPlayer);
+  const isCurrent = currentPickNumber === pick.pickNumber;
 
   return (
     <li
-      className={`redraft-pick-row${
-        currentPickNumber === pick.pickNumber ? " is-current" : ""
-      }`}
+      className={cn(
+        "grid min-h-[60px] grid-cols-[78px_minmax(220px,1fr)_minmax(220px,320px)] items-center gap-3 border-b border-command-border px-3.5 py-2.5 first:border-t-0 max-[620px]:grid-cols-[60px_minmax(0,1fr)]",
+        isCurrent
+          ? "bg-command-accent-soft shadow-[inset_3px_0_0_var(--color-command-accent)]"
+          : "odd:bg-command-surface-muted/45 hover:bg-command-accent-soft/65"
+      )}
     >
-      <div className="redraft-pick-meta">
-        <strong>#{pick.pickNumber}</strong>
-        <span>
+      <div className="grid gap-0.5">
+        <strong className="text-[0.98rem] font-[760] text-command-accent-dark">
+          #{pick.pickNumber}
+        </strong>
+        <span className="text-[0.72rem] font-[650] text-command-muted">
           T{pick.round}.{pick.roundPick}
         </span>
       </div>
 
-      <div className="redraft-team-cell">
+      <div className="flex min-w-0 items-center gap-2.5">
         {team ? <TeamLogo team={team} /> : null}
-        <div>
-          <strong>{pick.selection.gmName}</strong>
-          <span>{team ? team.name : "Franchise"}</span>
+        <div className="min-w-0">
+          <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[0.89rem] font-[700] text-command-ink">
+            {pick.selection.gmName}
+          </strong>
+          <span className="mt-0.5 block overflow-hidden text-ellipsis whitespace-nowrap text-[0.76rem] font-[650] text-command-muted">
+            {team ? team.name : "Franchise"}
+          </span>
         </div>
       </div>
 
-      <select
-        aria-label={`Joueur du pick ${pick.pickNumber}`}
-        className="control-select"
-        onChange={(event) => onChange(pick.pickNumber, event.target.value)}
-        value={selectedPlayer}
+      <Select
+        onValueChange={(value) =>
+          onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
+        }
+        value={selectedPlayer || NO_PLAYER_SELECTED}
       >
-        <option value="">Choisir joueur</option>
-        {playerOptions.map((playerName) => (
-          <option key={playerName} value={playerName}>
-            {playerName}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          aria-label={`Joueur du pick ${pick.pickNumber}`}
+          className="max-[620px]:col-span-full"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
+          {playerOptions.map((playerName) => (
+            <SelectItem key={playerName} value={playerName}>
+              {playerName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </li>
   );
 }
@@ -365,7 +433,14 @@ function parseStoredPicks(storedValue: string | null): PicksByNumber {
 }
 
 function TeamLogo({ team }: { team: Team }) {
-  return <img src={team.logoUrl} alt="" className="team-logo" loading="lazy" />;
+  return (
+    <img
+      alt=""
+      className="h-[28px] w-[28px] shrink-0 object-contain"
+      loading="lazy"
+      src={team.logoUrl}
+    />
+  );
 }
 
 async function requestFranchiseSelections() {
