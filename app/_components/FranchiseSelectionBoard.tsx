@@ -19,7 +19,6 @@ export function FranchiseSelectionBoard() {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [savingSlot, setSavingSlot] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -62,38 +61,6 @@ export function FranchiseSelectionBoard() {
   const assignedCount = selectedTeamIds.size;
   const nextSelection = selections.find((selection) => !selection.teamId);
 
-  async function updateTeam(slot: number, teamId: string) {
-    setSavingSlot(slot);
-    setErrorMessage(null);
-
-    try {
-      setSelections(
-        await requestFranchiseSelections({
-          body: JSON.stringify({ slot, teamId: teamId || null }),
-          headers: { "Content-Type": "application/json" },
-          method: "PATCH"
-        })
-      );
-    } catch (error) {
-      setErrorMessage(toErrorMessage(error));
-    } finally {
-      setSavingSlot(null);
-    }
-  }
-
-  async function resetSelections() {
-    setSavingSlot(0);
-    setErrorMessage(null);
-
-    try {
-      setSelections(await requestFranchiseSelections({ method: "DELETE" }));
-    } catch (error) {
-      setErrorMessage(toErrorMessage(error));
-    } finally {
-      setSavingSlot(null);
-    }
-  }
-
   return (
     <section className="lottery-panel workflow-panel" aria-labelledby="franchise-title">
       <div className="lottery-header">
@@ -107,13 +74,6 @@ export function FranchiseSelectionBoard() {
         </div>
 
         <div className="lottery-actions" aria-label="Actions franchises">
-          <button
-            className="secondary-action"
-            disabled={isLoading || savingSlot !== null}
-            onClick={resetSelections}
-          >
-            Réinitialiser
-          </button>
           <Link className="primary-action" href="/draft/redraft">
             Ouvrir redraft
           </Link>
@@ -140,11 +100,11 @@ export function FranchiseSelectionBoard() {
         </div>
         <div>
           <span>Prochain choix</span>
-          <strong>{nextSelection ? `#${nextSelection.slot}` : "Terminé"}</strong>
+          <strong>{nextSelection ? `#${nextSelection.slot}` : "Verrouillé"}</strong>
         </div>
         <div>
           <span>Source</span>
-          <strong>{isLoading ? "Chargement" : "Base DB"}</strong>
+          <strong>{isLoading ? "Chargement" : "Sélection finale"}</strong>
         </div>
       </div>
 
@@ -172,37 +132,15 @@ export function FranchiseSelectionBoard() {
                   <td>
                     <div className="selection-team-control">
                       {selectedTeam ? <TeamLogo team={selectedTeam} /> : null}
-                      <select
-                        aria-label={`Franchise du rang ${selection.slot}`}
-                        className="control-select"
-                        onChange={(event) =>
-                          updateTeam(selection.slot, event.target.value)
-                        }
-                        value={selection.teamId ?? ""}
-                        disabled={isLoading || savingSlot !== null}
-                      >
-                        <option value="">Franchise à choisir</option>
-                        {NBA_TEAMS.map((team) => (
-                          <option
-                            disabled={
-                              selectedTeamIds.has(team.id) &&
-                              team.id !== selection.teamId
-                            }
-                            key={team.id}
-                            value={team.id}
-                          >
-                            {team.abbreviation} - {team.name}
-                          </option>
-                        ))}
-                      </select>
+                      <span className="locked-franchise-name">
+                        {selectedTeam
+                          ? `${selectedTeam.abbreviation} - ${selectedTeam.name}`
+                          : "Franchise verrouillée"}
+                      </span>
                     </div>
                   </td>
                   <td className="status-cell">
-                    {savingSlot === selection.slot
-                      ? "Sauvegarde"
-                      : selectedTeam
-                        ? selectedTeam.abbreviation
-                        : "Libre"}
+                    {selectedTeam ? "Verrouillé" : "Libre"}
                   </td>
                 </tr>
               );

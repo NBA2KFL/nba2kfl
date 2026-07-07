@@ -342,6 +342,10 @@
     @apply min-w-[760px];
   }
 
+  .ownership-table {
+    @apply min-w-[1080px];
+  }
+
   .draft-table th,
   .selection-table th {
     @apply h-9 border-b border-command-border bg-command-surface-muted text-left text-[0.63rem] font-[760] tracking-[0.13em] text-command-muted uppercase;
@@ -517,7 +521,19 @@
     @apply text-[0.74rem] font-[720] text-command-muted;
   }
 
+  .ownership-primary-toggle {
+    @apply inline-flex min-h-[38px] items-center gap-2 rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.78rem] font-[680] text-command-muted-strong;
+  }
+
+  .ownership-primary-toggle input {
+    @apply h-4 w-4 accent-command-accent;
+  }
+
   .locked-gm-name {
+    @apply block min-h-[38px] rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.86rem] font-[670] leading-tight text-command-ink;
+  }
+
+  .locked-franchise-name {
     @apply block min-h-[38px] rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.86rem] font-[670] leading-tight text-command-ink;
   }
 

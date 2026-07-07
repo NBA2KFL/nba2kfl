@@ -2,16 +2,16 @@ import { NextResponse } from "next/server";
 import { NBA_TEAMS } from "@/data/teams";
 import { getDraftDbClient, type DraftDbClient } from "@/lib/draft-db";
 import {
-  clearFranchiseSelections,
   ensureFranchiseSelectionSchema,
   loadFranchiseSelections,
-  seedGmDraftSlots,
-  updateFranchiseSelection
+  seedGmDraftSlots
 } from "@/lib/franchise-db";
 
 export const dynamic = "force-dynamic";
 
 const TEAM_IDS = NBA_TEAMS.map((team) => team.id);
+const FRANCHISE_SELECTIONS_LOCKED = true;
+const LOCKED_SELECTION_ERROR = "La selection des franchises est verrouillee.";
 
 type FranchiseSelectionPayload = {
   slot: number;
@@ -38,10 +38,12 @@ export async function PATCH(request: Request) {
     );
   }
 
+  if (FRANCHISE_SELECTIONS_LOCKED) {
+    return lockedSelectionResponse();
+  }
+
   try {
     const db = await prepareFranchiseSelectionDb();
-
-    await updateFranchiseSelection(db, payload.slot, payload.teamId, TEAM_IDS);
 
     return selectionsResponse(db);
   } catch (error) {
@@ -57,15 +59,21 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE() {
+  if (FRANCHISE_SELECTIONS_LOCKED) {
+    return lockedSelectionResponse();
+  }
+
   try {
     const db = await prepareFranchiseSelectionDb();
-
-    await clearFranchiseSelections(db);
 
     return selectionsResponse(db);
   } catch (error) {
     return databaseErrorResponse(error);
   }
+}
+
+function lockedSelectionResponse() {
+  return NextResponse.json({ error: LOCKED_SELECTION_ERROR }, { status: 423 });
 }
 
 async function prepareFranchiseSelectionDb() {
