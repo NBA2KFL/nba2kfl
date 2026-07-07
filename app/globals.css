@@ -152,8 +152,7 @@
   }
 
   h1 {
-<<<<<<< HEAD
-    @apply mb-0 text-[clamp(1.45rem,2.1vw,2rem)] font-[720] leading-[1.04] tracking-[-0.035em] text-command-ink;
+    @apply mb-0 text-[clamp(1.45rem,2.1vw,2rem)] font-[720] leading-[1.04] tracking-[-0.035em] text-command-ink max-[620px]:text-[1.55rem];
   }
 }
 
@@ -881,8 +880,5 @@
     .side-panel-heading {
       @apply -mx-3 -mt-3 mb-3 px-3 py-3.5;
     }
-=======
-    @apply mb-0 text-[clamp(1.45rem,2.1vw,2rem)] font-[720] leading-[1.04] tracking-[-0.035em] text-command-ink max-[620px]:text-[1.55rem];
->>>>>>> 58c7379170c8db82032247a2ea1d7b11974e7fa2
   }
 }
