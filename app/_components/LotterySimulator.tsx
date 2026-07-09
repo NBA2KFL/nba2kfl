@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { NBA_TEAMS } from "@/data/teams";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DRAFT_LOTTERY_GENERATION_LOCKED,
   DRAFT_LOTTERY_LOCKED_MESSAGE,
@@ -135,7 +136,13 @@ export function LotterySimulator() {
         </div>
       ) : null}
 
-      {hasResult ? (
+      {isLoading && !hasResult ? (
+        <div className="grid gap-2.5 p-4">
+          {Array.from({ length: 6 }, (_, index) => (
+            <Skeleton className="h-11 w-full rounded-[10px]" key={index} />
+          ))}
+        </div>
+      ) : hasResult ? (
         <div className="max-w-full overflow-x-auto">
           <table className="w-full border-collapse bg-command-surface max-[620px]:min-w-[560px]">
             <thead>
