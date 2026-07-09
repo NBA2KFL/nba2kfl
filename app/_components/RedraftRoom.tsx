@@ -42,6 +42,14 @@ type RedraftPlayerOption = {
   label: string;
   value: string;
 };
+type RedraftPickNotificationPayload = {
+  gmName: string;
+  pickNumber: number;
+  playerName: string;
+  round: number;
+  roundPick: number;
+  teamName: string | null;
+};
 type RedraftRoomProps = {
   currentUserEmail: string | null;
 };
@@ -183,6 +191,21 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
 
     setPickValidationError(null);
+    if (validation.playerName) {
+      const team = findTeam(pick.selection.teamId);
+
+      void notifyRedraftPickValidated({
+        gmName: pick.selection.gmName,
+        pickNumber: pick.pickNumber,
+        playerName: validation.playerName,
+        round: pick.round,
+        roundPick: pick.roundPick,
+        teamName: team?.name ?? null
+      }).catch((error) => {
+        console.error("Redraft Discord notification failed", error);
+      });
+    }
+
     setPicksByNumber((currentPicks) => {
       const nextPicks = { ...currentPicks };
 
@@ -613,6 +636,20 @@ export function clearCurrentUserRedraftPicks(
   }
 
   return nextPicks;
+}
+
+export async function notifyRedraftPickValidated(
+  payload: RedraftPickNotificationPayload
+) {
+  const response = await fetch("/api/redraft-picks/notifications", {
+    body: JSON.stringify(payload),
+    headers: { "content-type": "application/json" },
+    method: "POST"
+  });
+
+  if (!response.ok) {
+    throw new Error("Impossible de notifier Discord.");
+  }
 }
 
 function formatPlayerOption(player: Nba2kRosterPlayerSummary) {

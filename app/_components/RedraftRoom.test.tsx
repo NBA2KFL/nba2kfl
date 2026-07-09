@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   canCurrentUserEditRedraftPick,
   canCurrentUserSelectRedraftPick,
   clearCurrentUserRedraftPicks,
   getVisiblePlayerOptions,
+  notifyRedraftPickValidated,
   normalizeRedraftRounds
 } from "./RedraftRoom";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
@@ -137,6 +138,41 @@ describe("clearCurrentUserRedraftPicks", () => {
       )
     ).toEqual({
       8: "Nikola Jokic"
+    });
+  });
+});
+
+describe("notifyRedraftPickValidated", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts a validated redraft pick to the notification endpoint", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    );
+
+    await notifyRedraftPickValidated({
+      gmName: "Chris",
+      pickNumber: 7,
+      playerName: "Victor Wembanyama",
+      round: 1,
+      roundPick: 7,
+      teamName: "San Antonio Spurs"
+    });
+
+    expect(fetch).toHaveBeenCalledWith("/api/redraft-picks/notifications", {
+      body: JSON.stringify({
+        gmName: "Chris",
+        pickNumber: 7,
+        playerName: "Victor Wembanyama",
+        round: 1,
+        roundPick: 7,
+        teamName: "San Antonio Spurs"
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
     });
   });
 });
