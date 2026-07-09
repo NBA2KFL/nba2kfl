@@ -47,13 +47,14 @@ type RedraftPlayerOption = {
 };
 type RedraftRoomProps = {
   currentUserEmail: string | null;
+  isAdmin?: boolean;
 };
 
 const USER_EMAILS_BY_DRAFT_SLOT = new Map(
   GM_DRAFT_SLOT_LINKS.map((link) => [link.slot, link.userEmail.toLowerCase()])
 );
 
-export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
+export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomProps) {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
   const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
   const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
@@ -168,7 +169,12 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
 
     if (
       !pick ||
-      !canCurrentUserSelectRedraftPick(pick, currentPick, currentUserEmail)
+      !canCurrentUserSelectRedraftPick(
+        pick,
+        currentPick,
+        currentUserEmail,
+        isAdmin
+      )
     ) {
       return;
     }
@@ -232,7 +238,7 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
           className="grid w-full gap-2 max-[1040px]:grid-cols-3 max-[620px]:grid-cols-1"
         >
           <Button onClick={clearPicks} variant="secondary">
-            Vider mes picks
+            {isAdmin ? "Vider tous les picks" : "Vider mes picks"}
           </Button>
           <Button asChild>
             <Link href="/draft/franchises">Franchises</Link>
@@ -363,7 +369,8 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
                 isUserAllowedToEdit={canCurrentUserSelectRedraftPick(
                   pick,
                   currentPick,
-                  currentUserEmail
+                  currentUserEmail,
+                  isAdmin
                 )}
                 onChange={updatePick}
                 onOpenChange={(isOpen) =>
@@ -577,8 +584,13 @@ export function normalizeRedraftRounds(rounds: number) {
 
 export function canCurrentUserEditRedraftPick(
   pick: SnakeDraftPick,
-  currentUserEmail: string | null
+  currentUserEmail: string | null,
+  isAdmin: boolean = false
 ) {
+  if (isAdmin) {
+    return true;
+  }
+
   const allowedEmail = USER_EMAILS_BY_DRAFT_SLOT.get(pick.selection.slot);
 
   return (
@@ -590,11 +602,12 @@ export function canCurrentUserEditRedraftPick(
 export function canCurrentUserSelectRedraftPick(
   pick: SnakeDraftPick,
   currentPick: SnakeDraftPick | null | undefined,
-  currentUserEmail: string | null
+  currentUserEmail: string | null,
+  isAdmin: boolean = false
 ) {
   return (
     currentPick?.pickNumber === pick.pickNumber &&
-    canCurrentUserEditRedraftPick(pick, currentUserEmail)
+    canCurrentUserEditRedraftPick(pick, currentUserEmail, isAdmin)
   );
 }
 

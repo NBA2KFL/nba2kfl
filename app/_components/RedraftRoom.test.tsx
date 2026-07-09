@@ -110,6 +110,13 @@ describe("canCurrentUserEditRedraftPick", () => {
     );
     expect(canCurrentUserEditRedraftPick(chrisPick, null)).toBe(false);
   });
+
+  it("allows admins to edit picks for any GM slot", () => {
+    expect(canCurrentUserEditRedraftPick(chrisPick, "admin@nba2kfl.local", true)).toBe(
+      true
+    );
+    expect(canCurrentUserEditRedraftPick(akumaPick, null, true)).toBe(true);
+  });
 });
 
 describe("canCurrentUserSelectRedraftPick", () => {
@@ -122,6 +129,25 @@ describe("canCurrentUserSelectRedraftPick", () => {
     ).toBe(false);
     expect(
       canCurrentUserSelectRedraftPick(chrisPick, chrisPick, "akuma@nba2kfl.local")
+    ).toBe(false);
+  });
+
+  it("allows admins to select the current pick for any GM slot", () => {
+    expect(
+      canCurrentUserSelectRedraftPick(
+        chrisPick,
+        chrisPick,
+        "admin@nba2kfl.local",
+        true
+      )
+    ).toBe(true);
+    expect(
+      canCurrentUserSelectRedraftPick(
+        chrisPick,
+        akumaPick,
+        "admin@nba2kfl.local",
+        true
+      )
     ).toBe(false);
   });
 });

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { NBA_TEAMS } from "@/data/teams";
+import { isAdminEmail } from "@/lib/admin-auth";
 import { auth } from "@/lib/auth";
-import { AuthRequiredError, ForbiddenUserError, resolveCurrentUser } from "@/lib/current-user";
+import {
+  AuthRequiredError,
+  ForbiddenUserError,
+  resolveCurrentUser,
+  type CurrentDraftUser
+} from "@/lib/current-user";
 import { getDraftDbClient, type DraftDbClient } from "@/lib/draft-db";
 import {
   ensureFranchiseSelectionSchema,
@@ -40,6 +46,9 @@ type RedraftPickPayload = {
   pickNumber: number;
   playerName: string;
 };
+type RedraftRequestUser = CurrentDraftUser & {
+  isAdmin: boolean;
+};
 
 export async function GET() {
   try {
@@ -76,7 +85,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Pick introuvable." }, { status: 404 });
     }
 
-    if (!canUserEditPick(pick, user.email)) {
+    if (!canUserEditPick(pick, user)) {
       return NextResponse.json(
         { error: "Ce pick ne vous appartient pas." },
         { status: 403 }
@@ -133,9 +142,11 @@ export async function DELETE() {
   try {
     const db = await prepareRedraftPickDb();
     const user = await resolveRequestUser(db);
-    const ownedSlots = GM_DRAFT_SLOT_LINKS.filter(
-      (link) => link.userEmail.toLowerCase() === user.email
-    ).map((link) => link.slot);
+    const ownedSlots = user.isAdmin
+      ? GM_DRAFT_SLOT_LINKS.map((link) => link.slot)
+      : GM_DRAFT_SLOT_LINKS.filter(
+          (link) => link.userEmail.toLowerCase() === user.email
+        ).map((link) => link.slot);
 
     await clearRedraftPicksForSlots(db, ownedSlots);
 
@@ -181,7 +192,12 @@ async function resolveRequestUser(db: DraftDbClient) {
     headers: await headers()
   });
 
-  return resolveCurrentUser(db, session);
+  const user = await resolveCurrentUser(db, session);
+
+  return {
+    ...user,
+    isAdmin: isAdminEmail(session?.user?.email)
+  };
 }
 
 async function parsePayload(request: Request): Promise<RedraftPickPayload | null> {
@@ -214,8 +230,11 @@ async function parsePayload(request: Request): Promise<RedraftPickPayload | null
   };
 }
 
-function canUserEditPick(pick: SnakeDraftPick, userEmail: string) {
-  return USER_EMAILS_BY_DRAFT_SLOT.get(pick.selection.slot) === userEmail;
+function canUserEditPick(pick: SnakeDraftPick, user: RedraftRequestUser) {
+  return (
+    user.isAdmin ||
+    USER_EMAILS_BY_DRAFT_SLOT.get(pick.selection.slot) === user.email
+  );
 }
 
 function routeErrorResponse(error: unknown) {
