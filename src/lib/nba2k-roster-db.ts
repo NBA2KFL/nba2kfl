@@ -30,6 +30,24 @@ export type Nba2kRosterPlayer = {
   sourceUrl: string;
 };
 
+export type Nba2kRosterPlayerSummary = {
+  sourcePlayerId: number;
+  fullName: string;
+  position: string | null;
+  rating: number;
+  teamId: string;
+  teamName: string;
+};
+
+type Nba2kRosterPlayerSummaryRow = {
+  source_player_id: number | string;
+  full_name: string;
+  position: string | null;
+  rating: number | string;
+  team_id: string;
+  team_name: string;
+};
+
 export function parseNba2kRosterSourcePayload(
   payload: unknown
 ): Nba2kRosterSourcePlayer[] {
@@ -101,6 +119,31 @@ export async function ensureNba2kRosterSchema(db: DraftDbClient) {
     CREATE INDEX IF NOT EXISTS nba2k_roster_players_team_rating_idx
     ON nba2k_roster_players (team_id, rating DESC, full_name)
   `);
+}
+
+export async function loadNba2kRosterPlayers(
+  db: DraftDbClient
+): Promise<Nba2kRosterPlayerSummary[]> {
+  const rows = await db.query<Nba2kRosterPlayerSummaryRow>(`
+    SELECT
+      source_player_id,
+      full_name,
+      position,
+      rating,
+      team_id,
+      team_name
+    FROM nba2k_roster_players
+    ORDER BY rating DESC, full_name ASC
+  `);
+
+  return rows.map((row) => ({
+    sourcePlayerId: Number(row.source_player_id),
+    fullName: row.full_name,
+    position: row.position,
+    rating: Number(row.rating),
+    teamId: row.team_id,
+    teamName: row.team_name
+  }));
 }
 
 export function normalizeNba2kRosterPlayer(

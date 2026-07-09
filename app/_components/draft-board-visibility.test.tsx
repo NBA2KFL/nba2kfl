@@ -9,11 +9,12 @@ describe("visible draft board links", () => {
     const markup = [
       renderToStaticMarkup(<LotterySimulator />),
       renderToStaticMarkup(<FranchiseSelectionBoard />),
-      renderToStaticMarkup(<RedraftRoom />)
+      renderToStaticMarkup(<RedraftRoom currentUserEmail={null} />)
     ].join("");
 
     expect(markup).not.toContain('href="/draft"');
     expect(markup).not.toContain("Board draft");
     expect(markup).not.toContain("Voir la draft");
+    expect(markup).not.toContain("Joueurs disponibles");
   });
 });

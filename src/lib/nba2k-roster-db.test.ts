@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DraftDbClient } from "./draft-db";
 import {
   ensureNba2kRosterSchema,
+  loadNba2kRosterPlayers,
   normalizeNba2kRosterPlayer,
   parseNba2kRosterSourcePayload,
   upsertNba2kRosterPlayers
@@ -115,6 +116,53 @@ describe("NBA 2K roster persistence", () => {
         rating: 93,
         attributes: { ball: 95 }
       })
+    ]);
+  });
+
+  it("loads roster players for redraft sorted by rating and name", async () => {
+    const db = createDbClient([
+      [
+        {
+          source_player_id: 2,
+          full_name: "Jalen Brunson",
+          position: "PG",
+          rating: 93,
+          team_id: "nyk",
+          team_name: "New York Knicks"
+        },
+        {
+          source_player_id: 1,
+          full_name: "Joel Embiid",
+          position: "C",
+          rating: 92,
+          team_id: "phi",
+          team_name: "Philadelphia 76ers"
+        }
+      ]
+    ]);
+
+    const players = await loadNba2kRosterPlayers(db);
+    const [queryText] = vi.mocked(db.query).mock.calls[0];
+
+    expect(queryText).toContain("FROM nba2k_roster_players");
+    expect(queryText).toContain("ORDER BY rating DESC, full_name ASC");
+    expect(players).toEqual([
+      {
+        sourcePlayerId: 2,
+        fullName: "Jalen Brunson",
+        position: "PG",
+        rating: 93,
+        teamId: "nyk",
+        teamName: "New York Knicks"
+      },
+      {
+        sourcePlayerId: 1,
+        fullName: "Joel Embiid",
+        position: "C",
+        rating: 92,
+        teamId: "phi",
+        teamName: "Philadelphia 76ers"
+      }
     ]);
   });
 

@@ -9,41 +9,58 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue
+  SelectTrigger
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
   createSnakeDraftPicks,
+  GM_DRAFT_SLOT_LINKS,
   REDRAFT_PICKS_STORAGE_KEY,
-  REDRAFT_PLAYER_POOL_STORAGE_KEY,
   type FranchiseSelection,
   type SnakeDraftPick
 } from "@/lib/redraft";
 
 const NO_PLAYER_SELECTED = "__none__";
-const DEFAULT_ROUNDS = 4;
+const MIN_REDRAFT_ROUNDS = 1;
+export const MAX_REDRAFT_ROUNDS = 14;
+const DEFAULT_ROUNDS = MAX_REDRAFT_ROUNDS;
 const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
-const DEFAULT_PLAYER_POOL = Array.from(
-  { length: NBA_TEAMS.length * DEFAULT_ROUNDS },
-  (_, index) => `Joueur ${index + 1}`
-).join("\n");
 
 type PicksByNumber = Record<string, string>;
 type FranchiseSelectionsApiResponse = {
   selections?: FranchiseSelection[];
   error?: string;
 };
+type PlayersApiResponse = {
+  players?: Nba2kRosterPlayerSummary[];
+  error?: string;
+};
+type RedraftPlayerOption = {
+  label: string;
+  value: string;
+};
+type RedraftRoomProps = {
+  currentUserEmail: string | null;
+};
 
-export function RedraftRoom() {
+const USER_EMAILS_BY_DRAFT_SLOT = new Map(
+  GM_DRAFT_SLOT_LINKS.map((link) => [link.slot, link.userEmail.toLowerCase()])
+);
+
+export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
   const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
-  const [playerPoolText, setPlayerPoolText] = useState(DEFAULT_PLAYER_POOL);
+  const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
+    []
+  );
   const [picksByNumber, setPicksByNumber] = useState<PicksByNumber>({});
+  const [openPickNumber, setOpenPickNumber] = useState<number | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [selectionLoadError, setSelectionLoadError] = useState<string | null>(
     null
   );
+  const [playerLoadError, setPlayerLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,32 +73,33 @@ export function RedraftRoom() {
         window.localStorage.getItem(REDRAFT_PICKS_STORAGE_KEY)
       );
 
-      try {
-        const restoredSelections = await requestFranchiseSelections();
-
-        if (isMounted) {
-          setSelections(restoredSelections);
-          setSelectionLoadError(null);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setSelections([]);
-          setSelectionLoadError(toErrorMessage(error));
-        }
-      }
+      const [selectionResult, playerResult] = await Promise.allSettled([
+        requestFranchiseSelections(),
+        requestRosterPlayers()
+      ]);
 
       if (!isMounted) {
         return;
       }
 
+      if (selectionResult.status === "fulfilled") {
+        setSelections(selectionResult.value);
+        setSelectionLoadError(null);
+      } else {
+        setSelections([]);
+        setSelectionLoadError(toErrorMessage(selectionResult.reason));
+      }
+
+      if (playerResult.status === "fulfilled") {
+        setRosterPlayers(playerResult.value);
+        setPlayerLoadError(null);
+      } else {
+        setRosterPlayers([]);
+        setPlayerLoadError(toErrorMessage(playerResult.reason));
+      }
+
       setRounds(
-        Number.isInteger(restoredRounds) && restoredRounds >= 1
-          ? Math.min(restoredRounds, 8)
-          : DEFAULT_ROUNDS
-      );
-      setPlayerPoolText(
-        window.localStorage.getItem(REDRAFT_PLAYER_POOL_STORAGE_KEY) ??
-          DEFAULT_PLAYER_POOL
+        normalizeRedraftRounds(restoredRounds)
       );
       setPicksByNumber(restoredPicks);
       setHasLoaded(true);
@@ -100,18 +118,16 @@ export function RedraftRoom() {
     }
 
     window.localStorage.setItem(REDRAFT_ROUNDS_STORAGE_KEY, String(rounds));
-    window.localStorage.setItem(REDRAFT_PLAYER_POOL_STORAGE_KEY, playerPoolText);
     window.localStorage.setItem(
       REDRAFT_PICKS_STORAGE_KEY,
       JSON.stringify(picksByNumber)
     );
-  }, [hasLoaded, picksByNumber, playerPoolText, rounds]);
+  }, [hasLoaded, picksByNumber, rounds]);
 
   const draftPicks = useMemo(
     () => createSnakeDraftPicks(selections, rounds),
     [rounds, selections]
   );
-  const playerPool = useMemo(() => parsePlayerPool(playerPoolText), [playerPoolText]);
   const selectedPlayers = useMemo(
     () => new Set(Object.values(picksByNumber).filter(Boolean)),
     [picksByNumber]
@@ -120,16 +136,30 @@ export function RedraftRoom() {
     (pick) => picksByNumber[pick.pickNumber]
   ).length;
   const currentPick = draftPicks.find((pick) => !picksByNumber[pick.pickNumber]);
+  const playerStatusText = getPlayerStatusText({
+    hasLoaded,
+    playerCount: rosterPlayers.length,
+    playerLoadError
+  });
 
   function updateRounds(value: string) {
     const nextRounds = Number(value);
 
     if (Number.isInteger(nextRounds)) {
-      setRounds(Math.min(Math.max(nextRounds, 1), 8));
+      setRounds(normalizeRedraftRounds(nextRounds));
     }
   }
 
   function updatePick(pickNumber: number, playerName: string) {
+    const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
+
+    if (
+      !pick ||
+      !canCurrentUserSelectRedraftPick(pick, currentPick, currentUserEmail)
+    ) {
+      return;
+    }
+
     setPicksByNumber((currentPicks) => {
       const nextPicks = { ...currentPicks };
 
@@ -144,7 +174,9 @@ export function RedraftRoom() {
   }
 
   function clearPicks() {
-    setPicksByNumber({});
+    setPicksByNumber((currentPicks) =>
+      clearCurrentUserRedraftPicks(currentPicks, draftPicks, currentUserEmail)
+    );
   }
 
   return (
@@ -174,7 +206,7 @@ export function RedraftRoom() {
           className="grid w-full gap-2 max-[1040px]:grid-cols-3 max-[620px]:grid-cols-1"
         >
           <Button onClick={clearPicks} variant="secondary">
-            Vider picks
+            Vider mes picks
           </Button>
           <Button asChild>
             <Link href="/draft/franchises">Franchises</Link>
@@ -249,24 +281,30 @@ export function RedraftRoom() {
                 Tours
               </span>
               <Input
-                max={8}
-                min={1}
+                max={MAX_REDRAFT_ROUNDS}
+                min={MIN_REDRAFT_ROUNDS}
                 onChange={(event) => updateRounds(event.target.value)}
                 type="number"
                 value={rounds}
               />
             </label>
 
-            <label className="grid gap-2">
+            <div
+              className="grid gap-1.5 rounded-[10px] border border-command-border bg-command-surface p-3"
+              role={
+                playerStatusText.isAlert ? "alert" : undefined
+              }
+            >
               <span className="text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
-                Joueurs disponibles
+                Joueurs DB
               </span>
-              <textarea
-                className="min-h-[330px] w-full resize-y rounded-[10px] border border-command-border bg-command-surface p-3 text-[0.86rem] leading-[1.45] text-command-text shadow-[0_1px_0_rgba(16,24,40,0.03)] transition duration-150 ease-out focus:border-command-accent focus:shadow-[0_0_0_4px_rgba(94,106,210,0.12)] focus:outline-none"
-                onChange={(event) => setPlayerPoolText(event.target.value)}
-                value={playerPoolText}
-              />
-            </label>
+              <strong className="text-[0.92rem] font-[720] tracking-[-0.02em] text-command-ink">
+                {playerStatusText.title}
+              </strong>
+              <p className="m-0 text-[0.8rem] leading-[1.45] text-command-muted-strong">
+                {playerStatusText.description}
+              </p>
+            </div>
           </aside>
 
           <ol className="m-0 grid list-none p-0">
@@ -274,9 +312,24 @@ export function RedraftRoom() {
               <RedraftPickRow
                 currentPickNumber={currentPick?.pickNumber ?? null}
                 key={pick.pickNumber}
+                isPlayerPickerOpen={openPickNumber === pick.pickNumber}
+                isUserAllowedToEdit={canCurrentUserSelectRedraftPick(
+                  pick,
+                  currentPick,
+                  currentUserEmail
+                )}
                 onChange={updatePick}
+                onOpenChange={(isOpen) =>
+                  setOpenPickNumber((currentPickNumber) =>
+                    isOpen
+                      ? pick.pickNumber
+                      : currentPickNumber === pick.pickNumber
+                        ? null
+                        : currentPickNumber
+                  )
+                }
                 pick={pick}
-                playerPool={playerPool}
+                players={rosterPlayers}
                 selectedPlayer={picksByNumber[pick.pickNumber] ?? ""}
                 selectedPlayers={selectedPlayers}
               />
@@ -290,21 +343,32 @@ export function RedraftRoom() {
 
 function RedraftPickRow({
   currentPickNumber,
+  isPlayerPickerOpen,
+  isUserAllowedToEdit,
   onChange,
+  onOpenChange,
   pick,
-  playerPool,
+  players,
   selectedPlayer,
   selectedPlayers
 }: {
   currentPickNumber: number | null;
+  isPlayerPickerOpen: boolean;
+  isUserAllowedToEdit: boolean;
   onChange: (pickNumber: number, playerName: string) => void;
+  onOpenChange: (isOpen: boolean) => void;
   pick: SnakeDraftPick;
-  playerPool: string[];
+  players: Nba2kRosterPlayerSummary[];
   selectedPlayer: string;
   selectedPlayers: Set<string>;
 }) {
   const team = findTeam(pick.selection.teamId);
-  const playerOptions = getPlayerOptions(playerPool, selectedPlayers, selectedPlayer);
+  const playerOptions = getVisiblePlayerOptions({
+    isOpen: isPlayerPickerOpen,
+    players,
+    selectedPlayer,
+    selectedPlayers
+  });
   const isCurrent = currentPickNumber === pick.pickNumber;
 
   return (
@@ -338,6 +402,8 @@ function RedraftPickRow({
       </div>
 
       <Select
+        disabled={!isUserAllowedToEdit || (players.length === 0 && !selectedPlayer)}
+        onOpenChange={onOpenChange}
         onValueChange={(value) =>
           onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
         }
@@ -347,16 +413,24 @@ function RedraftPickRow({
           aria-label={`Joueur du pick ${pick.pickNumber}`}
           className="max-[620px]:col-span-full"
         >
-          <SelectValue />
+          <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+            {selectedPlayer
+              ? getSelectedPlayerLabel(players, selectedPlayer)
+              : isUserAllowedToEdit
+                ? "Choisir joueur"
+                : "Pas à votre tour"}
+          </span>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
-          {playerOptions.map((playerName) => (
-            <SelectItem key={playerName} value={playerName}>
-              {playerName}
-            </SelectItem>
-          ))}
-        </SelectContent>
+        {isPlayerPickerOpen ? (
+          <SelectContent>
+            <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
+            {playerOptions.map((player) => (
+              <SelectItem key={player.value} value={player.value}>
+                {player.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        ) : null}
       </Select>
     </li>
   );
@@ -374,36 +448,146 @@ function formatSelection(pick: SnakeDraftPick) {
     : `#${pick.pickNumber}`;
 }
 
-function getPlayerOptions(
-  playerPool: readonly string[],
-  selectedPlayers: ReadonlySet<string>,
-  selectedPlayer: string
-) {
-  const options = playerPool.filter(
-    (playerName) => playerName === selectedPlayer || !selectedPlayers.has(playerName)
-  );
+function getPlayerStatusText({
+  hasLoaded,
+  playerCount,
+  playerLoadError
+}: {
+  hasLoaded: boolean;
+  playerCount: number;
+  playerLoadError: string | null;
+}) {
+  if (!hasLoaded) {
+    return {
+      description: "Chargement depuis la table NBA 2K.",
+      isAlert: false,
+      title: "Chargement"
+    };
+  }
 
-  if (selectedPlayer && !options.includes(selectedPlayer)) {
-    return [selectedPlayer, ...options];
+  if (playerLoadError) {
+    return {
+      description: playerLoadError,
+      isAlert: true,
+      title: "Indisponibles"
+    };
+  }
+
+  if (playerCount === 0) {
+    return {
+      description: "Aucun joueur importé dans la table NBA 2K.",
+      isAlert: true,
+      title: "0 joueurs"
+    };
+  }
+
+  return {
+    description: "Options chargées depuis la table NBA 2K.",
+    isAlert: false,
+    title: `${playerCount} joueurs`
+  };
+}
+
+export function getVisiblePlayerOptions({
+  isOpen,
+  players,
+  selectedPlayer,
+  selectedPlayers
+}: {
+  isOpen: boolean;
+  players: readonly Nba2kRosterPlayerSummary[];
+  selectedPlayer: string;
+  selectedPlayers: ReadonlySet<string>;
+}): RedraftPlayerOption[] {
+  if (!isOpen) {
+    return [];
+  }
+
+  const options = players
+    .filter(
+      (player) =>
+        player.fullName === selectedPlayer || !selectedPlayers.has(player.fullName)
+    )
+    .map((player) => ({
+      label: formatPlayerOption(player),
+      value: player.fullName
+    }));
+
+  if (selectedPlayer && !options.some((option) => option.value === selectedPlayer)) {
+    return [{ label: selectedPlayer, value: selectedPlayer }, ...options];
   }
 
   return options;
 }
 
-function parsePlayerPool(value: string) {
-  const seenPlayers = new Set<string>();
+export function normalizeRedraftRounds(rounds: number) {
+  if (!Number.isInteger(rounds)) {
+    return DEFAULT_ROUNDS;
+  }
 
-  return value
-    .split(/\r?\n/)
-    .map((playerName) => playerName.trim())
-    .filter((playerName) => {
-      if (!playerName || seenPlayers.has(playerName)) {
-        return false;
-      }
+  return Math.min(Math.max(rounds, MIN_REDRAFT_ROUNDS), MAX_REDRAFT_ROUNDS);
+}
 
-      seenPlayers.add(playerName);
-      return true;
-    });
+export function canCurrentUserEditRedraftPick(
+  pick: SnakeDraftPick,
+  currentUserEmail: string | null
+) {
+  const allowedEmail = USER_EMAILS_BY_DRAFT_SLOT.get(pick.selection.slot);
+
+  return (
+    Boolean(allowedEmail) &&
+    currentUserEmail?.trim().toLowerCase() === allowedEmail
+  );
+}
+
+export function canCurrentUserSelectRedraftPick(
+  pick: SnakeDraftPick,
+  currentPick: SnakeDraftPick | null | undefined,
+  currentUserEmail: string | null
+) {
+  return (
+    currentPick?.pickNumber === pick.pickNumber &&
+    canCurrentUserEditRedraftPick(pick, currentUserEmail)
+  );
+}
+
+export function clearCurrentUserRedraftPicks(
+  picksByNumber: PicksByNumber,
+  draftPicks: readonly SnakeDraftPick[],
+  currentUserEmail: string | null
+) {
+  const editablePickNumbers = new Set(
+    draftPicks
+      .filter((pick) => canCurrentUserEditRedraftPick(pick, currentUserEmail))
+      .map((pick) => String(pick.pickNumber))
+  );
+  const nextPicks = { ...picksByNumber };
+
+  for (const pickNumber of editablePickNumbers) {
+    delete nextPicks[pickNumber];
+  }
+
+  return nextPicks;
+}
+
+function formatPlayerOption(player: Nba2kRosterPlayerSummary) {
+  return [
+    player.fullName,
+    player.position,
+    `OVR ${player.rating}`,
+    player.teamName
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function getSelectedPlayerLabel(
+  players: readonly Nba2kRosterPlayerSummary[],
+  selectedPlayer: string
+) {
+  const player = players.find((candidate) => candidate.fullName === selectedPlayer);
+
+  return player ? formatPlayerOption(player) : selectedPlayer;
 }
 
 function parseStoredPicks(storedValue: string | null): PicksByNumber {
@@ -458,6 +642,21 @@ async function requestFranchiseSelections() {
   }
 
   return payload.selections;
+}
+
+async function requestRosterPlayers() {
+  const response = await fetch("/api/players");
+  const payload = (await response.json().catch(() => ({}))) as PlayersApiResponse;
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Impossible de charger les joueurs.");
+  }
+
+  if (!Array.isArray(payload.players)) {
+    throw new Error("Reponse joueurs invalide.");
+  }
+
+  return payload.players;
 }
 
 function toErrorMessage(error: unknown) {
