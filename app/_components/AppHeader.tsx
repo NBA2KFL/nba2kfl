@@ -1,5 +1,19 @@
+"use client";
+
+import { LogOut } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { APP_NAV_ITEMS, type AppRoute } from "@/lib/navigation";
 
@@ -16,6 +30,18 @@ export function AppHeader({
   title,
   description
 }: AppHeaderProps) {
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
+  const isAuthenticated = Boolean(session?.user);
+  const navItems = isAuthenticated
+    ? APP_NAV_ITEMS.filter((item) => item.href !== "/sign-in")
+    : APP_NAV_ITEMS;
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    router.refresh();
+  }
+
   return (
     <header
       aria-labelledby="page-title"
@@ -47,7 +73,7 @@ export function AppHeader({
           aria-label="Navigation principale"
           className="flex flex-wrap content-center justify-end gap-1.5 rounded-[14px] border border-command-border bg-command-surface-muted/70 p-1 max-[1040px]:justify-start"
         >
-          {APP_NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               aria-current={item.href === activeHref ? "page" : undefined}
               className={cn(
@@ -63,8 +89,57 @@ export function AppHeader({
             </Link>
           ))}
         </nav>
+
+        {isPending ? (
+          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+        ) : isAuthenticated && session ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Menu du compte"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-command-border bg-command-accent-soft text-[0.78rem] font-[720] text-command-accent-dark transition duration-150 ease-out hover:border-command-border-strong focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[rgba(94,106,210,0.22)] data-[state=open]:border-command-accent"
+            >
+              {getAccountInitials(session.user.name, session.user.email)}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>
+                <span className="block truncate text-command-ink">
+                  {session.user.name?.trim() || session.user.email}
+                </span>
+                {session.user.name?.trim() ? (
+                  <span className="mt-0.5 block truncate text-[0.72rem] font-[500] text-command-muted">
+                    {session.user.email}
+                  </span>
+                ) : null}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleSignOut} variant="destructive">
+                <LogOut aria-hidden size={14} />
+                Déconnexion
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+
         <ThemeToggle />
       </div>
     </header>
   );
+}
+
+function getAccountInitials(name: string | null | undefined, email: string) {
+  const trimmedName = name?.trim();
+
+  if (trimmedName) {
+    const parts = trimmedName.split(/\s+/).filter(Boolean);
+    const initials = parts
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("");
+
+    if (initials) {
+      return initials.toUpperCase();
+    }
+  }
+
+  return email.slice(0, 2).toUpperCase();
 }
