@@ -11,6 +11,10 @@ import {
 } from "@/lib/current-user";
 import { getDraftDbClient, type DraftDbClient } from "@/lib/draft-db";
 import {
+  ensureDraftEventSchema,
+  insertDraftEvent
+} from "@/lib/draft-events";
+import {
   ensureFranchiseSelectionSchema,
   loadFranchiseSelections,
   seedGmDraftSlots
@@ -132,6 +136,12 @@ export async function PATCH(request: Request) {
       await clearRedraftPick(db, payload.pickNumber);
     }
 
+    await insertDraftEvent(db, "redraft_pick_changed", {
+      pickNumber: pick.pickNumber,
+      slot: pick.selection.slot,
+      playerName: validation.playerName || null
+    });
+
     return picksResponse(db);
   } catch (error) {
     return routeErrorResponse(error);
@@ -149,6 +159,10 @@ export async function DELETE() {
         ).map((link) => link.slot);
 
     await clearRedraftPicksForSlots(db, ownedSlots);
+    await insertDraftEvent(db, "redraft_pick_changed", {
+      slots: ownedSlots,
+      playerName: null
+    });
 
     return picksResponse(db);
   } catch (error) {
@@ -163,6 +177,7 @@ async function prepareRedraftPickDb() {
   await seedGmDraftSlots(db);
   await ensureNba2kRosterSchema(db);
   await ensureRedraftPickSchema(db);
+  await ensureDraftEventSchema(db);
 
   return db;
 }
