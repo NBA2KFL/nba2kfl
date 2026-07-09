@@ -55,7 +55,11 @@ describe("franchise selection database persistence", () => {
     );
     expect(db.query).toHaveBeenNthCalledWith(
       7,
-      expect.stringContaining("ON CONFLICT (team_id) DO NOTHING")
+      expect.stringContaining("ON CONFLICT (team_id) DO UPDATE")
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      7,
+      expect.stringContaining("WHERE gm_franchises.source_slot IS NOT NULL")
     );
   });
 
@@ -75,6 +79,18 @@ describe("franchise selection database persistence", () => {
       userEmail: "ashu@nba2kfl.local",
       teamId: "sac"
     });
+    expect(payload[9]).toMatchObject({
+      slot: 10,
+      gmName: "Nicomunist 2e équipe",
+      userEmail: "nicomunist@nba2kfl.local",
+      teamId: "mil"
+    });
+    expect(payload[16]).toMatchObject({
+      slot: 17,
+      gmName: "nicotuyaux",
+      userEmail: "nicotuyaux@nba2kfl.local",
+      teamId: "uta"
+    });
     expect(db.query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining("released_existing_primary AS")
@@ -86,6 +102,14 @@ describe("franchise selection database persistence", () => {
     expect(db.query).toHaveBeenNthCalledWith(
       3,
       expect.stringContaining("INSERT INTO gm_franchises")
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("ON CONFLICT (team_id) DO UPDATE")
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("WHERE gm_franchises.source_slot IS NOT NULL")
     );
   });
 

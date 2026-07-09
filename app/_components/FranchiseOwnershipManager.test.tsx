@@ -33,8 +33,8 @@ const ownerOptions = [
   },
   {
     userId: "user-2",
-    email: "nico@nba2kfl.local",
-    displayName: "Nico"
+    email: "nicomunist@nba2kfl.local",
+    displayName: "Nicomunist"
   }
 ];
 

@@ -247,7 +247,13 @@ async function syncFranchisesFromDraftSlots(db: DraftDbClient) {
       now()
     FROM gm_draft_slots
     WHERE team_id IS NOT NULL
-    ON CONFLICT (team_id) DO NOTHING
+    ON CONFLICT (team_id) DO UPDATE SET
+      user_id = excluded.user_id,
+      label = excluded.label,
+      is_primary = excluded.is_primary,
+      source_slot = excluded.source_slot,
+      updated_at = now()
+    WHERE gm_franchises.source_slot IS NOT NULL
   `);
 }
 

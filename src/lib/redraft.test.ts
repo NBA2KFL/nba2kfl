@@ -45,7 +45,8 @@ const finalGmNames = [
   "Khaladan",
   "Laiku",
   "Naoufel",
-  "Nico",
+  "nicotuyaux",
+  "Nicomunist",
   "Nortalis",
   "Paul",
   "Polo",
@@ -67,7 +68,7 @@ describe("createDraftSlots", () => {
     );
     expect(
       new Set(GM_DRAFT_SLOT_LINKS.map((slot) => slot.userEmail))
-    ).toHaveLength(28);
+    ).toHaveLength(29);
     expect(GM_DRAFT_SLOT_LINKS[2]).toMatchObject({
       gmName: "Hadiya",
       userName: "Hadiya",
@@ -88,6 +89,16 @@ describe("createDraftSlots", () => {
       userName: "Adito",
       userEmail: "adito@nba2kfl.local"
     });
+    expect(GM_DRAFT_SLOT_LINKS[9]).toMatchObject({
+      gmName: "Nicomunist 2e équipe",
+      userName: "Nicomunist",
+      userEmail: "nicomunist@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[16]).toMatchObject({
+      gmName: "nicotuyaux",
+      userName: "nicotuyaux",
+      userEmail: "nicotuyaux@nba2kfl.local"
+    });
     expect(GM_DRAFT_SLOT_LINKS[18]).toMatchObject({
       gmName: "Thomasninho",
       userName: "Thomas",
@@ -95,8 +106,8 @@ describe("createDraftSlots", () => {
     });
     expect(GM_DRAFT_SLOT_LINKS[21]).toMatchObject({
       gmName: "Nicomunist",
-      userName: "Nico",
-      userEmail: "nico@nba2kfl.local"
+      userName: "Nicomunist",
+      userEmail: "nicomunist@nba2kfl.local"
     });
     expect(GM_DRAFT_SLOT_LINKS[27]).toMatchObject({
       gmName: "Polodilintrepid",
@@ -124,14 +135,14 @@ describe("createDraftSlots", () => {
       "Chris",
       "Akuma",
       "Aditooo",
-      "Tamarlin 2",
+      "Nicomunist 2e équipe",
       "Singe",
       "Paulrv97",
       "Enzo.",
       "Nortalis",
       "Abda",
       "Sparky",
-      "Roazhon 2",
+      "nicotuyaux",
       "ASL",
       "Thomasninho",
       "Tony",
