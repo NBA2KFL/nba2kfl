@@ -17,7 +17,6 @@ import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
   createSnakeDraftPicks,
   GM_DRAFT_SLOT_LINKS,
-  REDRAFT_PICKS_STORAGE_KEY,
   validateRedraftPickChange,
   type FranchiseSelection,
   type RedraftPicksByNumber,
@@ -36,6 +35,10 @@ type FranchiseSelectionsApiResponse = {
 };
 type PlayersApiResponse = {
   players?: Nba2kRosterPlayerSummary[];
+  error?: string;
+};
+type RedraftPicksApiResponse = {
+  picks?: RedraftPicksByNumber;
   error?: string;
 };
 type RedraftPlayerOption = {
@@ -74,13 +77,11 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
       const restoredRounds = Number(
         window.localStorage.getItem(REDRAFT_ROUNDS_STORAGE_KEY)
       );
-      const restoredPicks = parseStoredPicks(
-        window.localStorage.getItem(REDRAFT_PICKS_STORAGE_KEY)
-      );
 
-      const [selectionResult, playerResult] = await Promise.allSettled([
+      const [selectionResult, playerResult, picksResult] = await Promise.allSettled([
         requestFranchiseSelections(),
-        requestRosterPlayers()
+        requestRosterPlayers(),
+        requestRedraftPicks()
       ]);
 
       if (!isMounted) {
@@ -103,10 +104,17 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
         setPlayerLoadError(toErrorMessage(playerResult.reason));
       }
 
+      if (picksResult.status === "fulfilled") {
+        setPicksByNumber(picksResult.value);
+        setPickValidationError(null);
+      } else {
+        setPicksByNumber({});
+        setPickValidationError(toErrorMessage(picksResult.reason));
+      }
+
       setRounds(
         normalizeRedraftRounds(restoredRounds)
       );
-      setPicksByNumber(restoredPicks);
       setHasLoaded(true);
     }
 
@@ -123,11 +131,7 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
 
     window.localStorage.setItem(REDRAFT_ROUNDS_STORAGE_KEY, String(rounds));
-    window.localStorage.setItem(
-      REDRAFT_PICKS_STORAGE_KEY,
-      JSON.stringify(picksByNumber)
-    );
-  }, [hasLoaded, picksByNumber, rounds]);
+  }, [hasLoaded, rounds]);
 
   const draftPicks = useMemo(
     () => createSnakeDraftPicks(selections, rounds),
@@ -159,7 +163,7 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
   }
 
-  function updatePick(pickNumber: number, playerName: string) {
+  async function updatePick(pickNumber: number, playerName: string) {
     const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
 
     if (
@@ -183,24 +187,22 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
 
     setPickValidationError(null);
-    setPicksByNumber((currentPicks) => {
-      const nextPicks = { ...currentPicks };
-
-      if (validation.playerName) {
-        nextPicks[pickNumber] = validation.playerName;
-      } else {
-        delete nextPicks[pickNumber];
-      }
-
-      return nextPicks;
-    });
+    try {
+      setPicksByNumber(
+        await requestRedraftPickUpdate(pickNumber, validation.playerName)
+      );
+    } catch (error) {
+      setPickValidationError(toErrorMessage(error));
+    }
   }
 
-  function clearPicks() {
+  async function clearPicks() {
     setPickValidationError(null);
-    setPicksByNumber((currentPicks) =>
-      clearCurrentUserRedraftPicks(currentPicks, draftPicks, currentUserEmail)
-    );
+    try {
+      setPicksByNumber(await requestClearRedraftPicks());
+    } catch (error) {
+      setPickValidationError(toErrorMessage(error));
+    }
   }
 
   return (
@@ -635,32 +637,6 @@ function getSelectedPlayerLabel(
   return player ? formatPlayerOption(player) : selectedPlayer;
 }
 
-function parseStoredPicks(storedValue: string | null): RedraftPicksByNumber {
-  if (!storedValue) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(storedValue);
-
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
-    }
-
-    const picks: RedraftPicksByNumber = {};
-
-    for (const [pickNumber, playerName] of Object.entries(parsed)) {
-      if (Number.isInteger(Number(pickNumber)) && typeof playerName === "string") {
-        picks[pickNumber] = playerName;
-      }
-    }
-
-    return picks;
-  } catch {
-    return {};
-  }
-}
-
 function TeamLogo({ team }: { team: Team }) {
   return (
     <img
@@ -702,6 +678,57 @@ async function requestRosterPlayers() {
   }
 
   return payload.players;
+}
+
+export async function requestRedraftPicks() {
+  const response = await fetch("/api/redraft-picks");
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftPicksApiResponse;
+
+  return parseRedraftPicksResponse(response, payload);
+}
+
+export async function requestRedraftPickUpdate(
+  pickNumber: number,
+  playerName: string
+) {
+  const response = await fetch("/api/redraft-picks", {
+    body: JSON.stringify({ pickNumber, playerName }),
+    headers: { "Content-Type": "application/json" },
+    method: "PATCH"
+  });
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftPicksApiResponse;
+
+  return parseRedraftPicksResponse(response, payload);
+}
+
+async function requestClearRedraftPicks() {
+  const response = await fetch("/api/redraft-picks", {
+    method: "DELETE"
+  });
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftPicksApiResponse;
+
+  return parseRedraftPicksResponse(response, payload);
+}
+
+function parseRedraftPicksResponse(
+  response: Response,
+  payload: RedraftPicksApiResponse
+) {
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Impossible de charger les picks.");
+  }
+
+  if (!payload.picks || typeof payload.picks !== "object") {
+    throw new Error("Reponse picks invalide.");
+  }
+
+  return payload.picks;
 }
 
 function toErrorMessage(error: unknown) {
