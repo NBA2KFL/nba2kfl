@@ -8,6 +8,7 @@ describe("APP_NAV_ITEMS", () => {
       "/lotterie",
       "/draft/franchises",
       "/draft/redraft",
+      "/franchises",
       "/sign-in"
     ]);
   });
@@ -16,7 +17,8 @@ describe("APP_NAV_ITEMS", () => {
     expect(PRIMARY_APP_NAV_ITEMS.map((item) => item.href)).toEqual([
       "/lotterie",
       "/draft/franchises",
-      "/draft/redraft"
+      "/draft/redraft",
+      "/franchises"
     ]);
     expect(APP_NAV_ITEMS.some((item) => item.href === "/draft")).toBe(false);
   });

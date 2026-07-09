@@ -28,41 +28,79 @@ export type GmDraftSlotLink = {
   userEmail: string;
 };
 
+export type FinalFranchiseSelection = {
+  slot: number;
+  teamId: string;
+};
+
 export const REDRAFT_PLAYER_POOL_STORAGE_KEY = "nba2kfl:redraft-player-pool:v1";
 export const REDRAFT_PICKS_STORAGE_KEY = "nba2kfl:redraft-picks:v1";
 
 export const GM_DRAFT_SLOT_LINKS = [
   createGmDraftSlotLink(1, "Anna", "Anna"),
-  createGmDraftSlotLink(2, "Ellias", "Ellias"),
-  createGmDraftSlotLink(3, "Nico 2e équipe", "Nico"),
-  createGmDraftSlotLink(4, "Clem 2e équipe", "Clem"),
-  createGmDraftSlotLink(5, "Chris", "Chris"),
-  createGmDraftSlotLink(6, "Math", "Mat Presti"),
-  createGmDraftSlotLink(7, "Teepi", "Teepi"),
+  createGmDraftSlotLink(2, "Elias", "Elias"),
+  createGmDraftSlotLink(3, "Hadiya", "Hadiya"),
+  createGmDraftSlotLink(4, "Clemppt", "Clem"),
+  createGmDraftSlotLink(5, "Roazhon", "Roazhon"),
+  createGmDraftSlotLink(6, "Ashu de Metal", "Ashu"),
+  createGmDraftSlotLink(7, "Chris", "Chris"),
   createGmDraftSlotLink(8, "Akuma", "Akuma"),
-  createGmDraftSlotLink(9, "Tony", "Tony"),
-  createGmDraftSlotLink(10, "Adito", "Adito"),
-  createGmDraftSlotLink(11, "Tamarlin", "Tamarlin"),
-  createGmDraftSlotLink(12, "Tamarlin 2e équipe", "Tamarlin"),
-  createGmDraftSlotLink(13, "Tony 2e équipe", "Tony"),
-  createGmDraftSlotLink(14, "Paul", "Paul"),
-  createGmDraftSlotLink(15, "Tomasninho", "Tomasninho"),
-  createGmDraftSlotLink(16, "Nico", "Nico"),
-  createGmDraftSlotLink(17, "Enzo", "Enzo"),
-  createGmDraftSlotLink(18, "Sam", "Sam"),
-  createGmDraftSlotLink(19, "ASL", "ASL"),
-  createGmDraftSlotLink(20, "Khaladan", "Khaladan"),
-  createGmDraftSlotLink(21, "Masai", "Masai"),
-  createGmDraftSlotLink(22, "Diane", "Diane"),
+  createGmDraftSlotLink(9, "Aditooo", "Adito"),
+  createGmDraftSlotLink(10, "Nicomunist 2e équipe", "Nicomunist"),
+  createGmDraftSlotLink(11, "Singe", "Singe"),
+  createGmDraftSlotLink(12, "Paulrv97", "Paul"),
+  createGmDraftSlotLink(13, "Enzo.", "Enzo"),
+  createGmDraftSlotLink(14, "Nortalis", "Nortalis"),
+  createGmDraftSlotLink(15, "Abda", "Abda"),
+  createGmDraftSlotLink(16, "Sparky", "Sparky"),
+  createGmDraftSlotLink(17, "nicotuyaux", "nicotuyaux"),
+  createGmDraftSlotLink(18, "ASL", "ASL"),
+  createGmDraftSlotLink(19, "Thomasninho", "Thomas"),
+  createGmDraftSlotLink(20, "Tony", "Tony"),
+  createGmDraftSlotLink(21, "Tamarlin", "Tamarlin"),
+  createGmDraftSlotLink(22, "Nicomunist", "Nicomunist"),
   createGmDraftSlotLink(23, "Tidwa", "Tidwa"),
-  createGmDraftSlotLink(24, "Laiku", "Laiku"),
-  createGmDraftSlotLink(25, "Nortalis", "Nortalis"),
-  createGmDraftSlotLink(26, "Romback", "Romback"),
-  createGmDraftSlotLink(27, "Sparky", "Sparky"),
-  createGmDraftSlotLink(28, "Clem", "Clem"),
-  createGmDraftSlotLink(29, "Mat 2e équipe", "Mat Presti"),
-  createGmDraftSlotLink(30, "Naoufel", "Naoufel")
+  createGmDraftSlotLink(24, "Fabien", "Fabien"),
+  createGmDraftSlotLink(25, "Romback", "Romback"),
+  createGmDraftSlotLink(26, "Naoufel", "Naoufel"),
+  createGmDraftSlotLink(27, "Laiku", "Laiku"),
+  createGmDraftSlotLink(28, "Polodilintrepid", "Polo"),
+  createGmDraftSlotLink(29, "Diane", "Diane"),
+  createGmDraftSlotLink(30, "Khaladan", "Khaladan")
 ] as const satisfies readonly GmDraftSlotLink[];
+
+export const FINAL_FRANCHISE_SELECTIONS = [
+  { slot: 1, teamId: "hou" },
+  { slot: 2, teamId: "ind" },
+  { slot: 3, teamId: "tor" },
+  { slot: 4, teamId: "phi" },
+  { slot: 5, teamId: "lal" },
+  { slot: 6, teamId: "sac" },
+  { slot: 7, teamId: "sas" },
+  { slot: 8, teamId: "den" },
+  { slot: 9, teamId: "det" },
+  { slot: 10, teamId: "mil" },
+  { slot: 11, teamId: "phx" },
+  { slot: 12, teamId: "lac" },
+  { slot: 13, teamId: "dal" },
+  { slot: 14, teamId: "okc" },
+  { slot: 15, teamId: "por" },
+  { slot: 16, teamId: "min" },
+  { slot: 17, teamId: "uta" },
+  { slot: 18, teamId: "chi" },
+  { slot: 19, teamId: "mia" },
+  { slot: 20, teamId: "orl" },
+  { slot: 21, teamId: "cha" },
+  { slot: 22, teamId: "gsw" },
+  { slot: 23, teamId: "was" },
+  { slot: 24, teamId: "atl" },
+  { slot: 25, teamId: "bkn" },
+  { slot: 26, teamId: "nop" },
+  { slot: 27, teamId: "bos" },
+  { slot: 28, teamId: "mem" },
+  { slot: 29, teamId: "nyk" },
+  { slot: 30, teamId: "cle" }
+] as const satisfies readonly FinalFranchiseSelection[];
 
 export const DEFAULT_GM_DRAFT_ORDER = GM_DRAFT_SLOT_LINKS.map(
   (slot) => slot.gmName

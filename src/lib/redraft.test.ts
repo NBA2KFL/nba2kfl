@@ -4,6 +4,7 @@ import {
   createDraftSlots,
   createSnakeDraftPicks,
   DEFAULT_GM_DRAFT_ORDER,
+  FINAL_FRANCHISE_SELECTIONS,
   GM_DRAFT_SLOT_LINKS,
   parseFranchiseSelections,
   validateRedraftPickChange,
@@ -28,31 +29,96 @@ const selections: FranchiseSelection[] = [
   }
 ];
 
+const finalGmNames = [
+  "Abda",
+  "Akuma",
+  "Anna",
+  "ASL",
+  "Adito",
+  "Ashu",
+  "Chris",
+  "Clem",
+  "Diane",
+  "Elias",
+  "Enzo",
+  "Fabien",
+  "Hadiya",
+  "Khaladan",
+  "Laiku",
+  "Naoufel",
+  "nicotuyaux",
+  "Nicomunist",
+  "Nortalis",
+  "Paul",
+  "Polo",
+  "Roazhon",
+  "Romback",
+  "Singe",
+  "Sparky",
+  "Tamarlin",
+  "Tidwa",
+  "Thomas",
+  "Tony"
+];
+
 describe("createDraftSlots", () => {
-  it("links the 30 GM draft slots to the 25 auth users", () => {
+  it("links the 30 GM draft slots to the auth users", () => {
     expect(GM_DRAFT_SLOT_LINKS).toHaveLength(30);
+    expect(new Set(GM_DRAFT_SLOT_LINKS.map((slot) => slot.userName))).toEqual(
+      new Set(finalGmNames)
+    );
     expect(
       new Set(GM_DRAFT_SLOT_LINKS.map((slot) => slot.userEmail))
-    ).toHaveLength(25);
+    ).toHaveLength(29);
     expect(GM_DRAFT_SLOT_LINKS[2]).toMatchObject({
-      gmName: "Nico 2e équipe",
-      userName: "Nico",
-      userEmail: "nico@nba2kfl.local"
+      gmName: "Hadiya",
+      userName: "Hadiya",
+      userEmail: "hadiya@nba2kfl.local"
     });
     expect(GM_DRAFT_SLOT_LINKS[3]).toMatchObject({
-      gmName: "Clem 2e équipe",
+      gmName: "Clemppt",
       userName: "Clem",
       userEmail: "clem@nba2kfl.local"
     });
     expect(GM_DRAFT_SLOT_LINKS[5]).toMatchObject({
-      gmName: "Math",
-      userName: "Mat Presti",
-      userEmail: "mat-presti@nba2kfl.local"
+      gmName: "Ashu de Metal",
+      userName: "Ashu",
+      userEmail: "ashu@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[8]).toMatchObject({
+      gmName: "Aditooo",
+      userName: "Adito",
+      userEmail: "adito@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[9]).toMatchObject({
+      gmName: "Nicomunist 2e équipe",
+      userName: "Nicomunist",
+      userEmail: "nicomunist@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[16]).toMatchObject({
+      gmName: "nicotuyaux",
+      userName: "nicotuyaux",
+      userEmail: "nicotuyaux@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[18]).toMatchObject({
+      gmName: "Thomasninho",
+      userName: "Thomas",
+      userEmail: "thomas@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[21]).toMatchObject({
+      gmName: "Nicomunist",
+      userName: "Nicomunist",
+      userEmail: "nicomunist@nba2kfl.local"
+    });
+    expect(GM_DRAFT_SLOT_LINKS[27]).toMatchObject({
+      gmName: "Polodilintrepid",
+      userName: "Polo",
+      userEmail: "polo@nba2kfl.local"
     });
     expect(GM_DRAFT_SLOT_LINKS[28]).toMatchObject({
-      gmName: "Mat 2e équipe",
-      userName: "Mat Presti",
-      userEmail: "mat-presti@nba2kfl.local"
+      gmName: "Diane",
+      userName: "Diane",
+      userEmail: "diane@nba2kfl.local"
     });
   });
 
@@ -62,37 +128,72 @@ describe("createDraftSlots", () => {
     expect(slots).toHaveLength(30);
     expect(slots.map((slot) => slot.gmName)).toEqual([
       "Anna",
-      "Ellias",
-      "Nico 2e équipe",
-      "Clem 2e équipe",
+      "Elias",
+      "Hadiya",
+      "Clemppt",
+      "Roazhon",
+      "Ashu de Metal",
       "Chris",
-      "Math",
-      "Teepi",
       "Akuma",
-      "Tony",
-      "Adito",
-      "Tamarlin",
-      "Tamarlin 2e équipe",
-      "Tony 2e équipe",
-      "Paul",
-      "Tomasninho",
-      "Nico",
-      "Enzo",
-      "Sam",
-      "ASL",
-      "Khaladan",
-      "Masai",
-      "Diane",
-      "Tidwa",
-      "Laiku",
+      "Aditooo",
+      "Nicomunist 2e équipe",
+      "Singe",
+      "Paulrv97",
+      "Enzo.",
       "Nortalis",
-      "Romback",
+      "Abda",
       "Sparky",
-      "Clem",
-      "Mat 2e équipe",
-      "Naoufel"
+      "nicotuyaux",
+      "ASL",
+      "Thomasninho",
+      "Tony",
+      "Tamarlin",
+      "Nicomunist",
+      "Tidwa",
+      "Fabien",
+      "Romback",
+      "Naoufel",
+      "Laiku",
+      "Polodilintrepid",
+      "Diane",
+      "Khaladan"
     ]);
     expect(DEFAULT_GM_DRAFT_ORDER).toHaveLength(30);
+  });
+
+  it("stores the final franchise choices from the 2026 redraft", () => {
+    expect(FINAL_FRANCHISE_SELECTIONS).toEqual([
+      { slot: 1, teamId: "hou" },
+      { slot: 2, teamId: "ind" },
+      { slot: 3, teamId: "tor" },
+      { slot: 4, teamId: "phi" },
+      { slot: 5, teamId: "lal" },
+      { slot: 6, teamId: "sac" },
+      { slot: 7, teamId: "sas" },
+      { slot: 8, teamId: "den" },
+      { slot: 9, teamId: "det" },
+      { slot: 10, teamId: "mil" },
+      { slot: 11, teamId: "phx" },
+      { slot: 12, teamId: "lac" },
+      { slot: 13, teamId: "dal" },
+      { slot: 14, teamId: "okc" },
+      { slot: 15, teamId: "por" },
+      { slot: 16, teamId: "min" },
+      { slot: 17, teamId: "uta" },
+      { slot: 18, teamId: "chi" },
+      { slot: 19, teamId: "mia" },
+      { slot: 20, teamId: "orl" },
+      { slot: 21, teamId: "cha" },
+      { slot: 22, teamId: "gsw" },
+      { slot: 23, teamId: "was" },
+      { slot: 24, teamId: "atl" },
+      { slot: 25, teamId: "bkn" },
+      { slot: 26, teamId: "nop" },
+      { slot: 27, teamId: "bos" },
+      { slot: 28, teamId: "mem" },
+      { slot: 29, teamId: "nyk" },
+      { slot: 30, teamId: "cle" }
+    ]);
   });
 
   it("falls back to numbered names after the configured order", () => {
@@ -195,8 +296,8 @@ describe("parseFranchiseSelections", () => {
 
     expect(restored).toEqual([
       { slot: 1, gmName: "Anna", teamId: NBA_TEAMS[0].id },
-      { slot: 2, gmName: "Ellias", teamId: NBA_TEAMS[1].id },
-      { slot: 3, gmName: "Nico 2e équipe", teamId: NBA_TEAMS[2].id }
+      { slot: 2, gmName: "Elias", teamId: NBA_TEAMS[1].id },
+      { slot: 3, gmName: "Hadiya", teamId: NBA_TEAMS[2].id }
     ]);
   });
 

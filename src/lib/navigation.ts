@@ -3,6 +3,7 @@ export type AppRoute =
   | "/lotterie"
   | "/draft/franchises"
   | "/draft/redraft"
+  | "/franchises"
   | "/sign-in";
 
 export type AppNavItem = {
@@ -38,6 +39,12 @@ export const APP_NAV_ITEMS = [
     ctaLabel: "Lancer la redraft"
   },
   {
+    href: "/franchises",
+    label: "Gestion",
+    description: "Administre les propriétaires long terme des franchises.",
+    ctaLabel: "Gérer les propriétaires"
+  },
+  {
     href: "/sign-in",
     label: "Connexion",
     description: "Connecte ton compte GM.",
@@ -48,3 +55,48 @@ export const APP_NAV_ITEMS = [
 export const PRIMARY_APP_NAV_ITEMS = APP_NAV_ITEMS.filter(
   (item) => item.href !== "/" && item.href !== "/sign-in"
 );
+
+export type PageHeaderContent = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+export const PAGE_HEADER_CONTENT: Record<AppRoute, PageHeaderContent> = {
+  "/": {
+    eyebrow: "NBA2KFL Draft Room",
+    title: "Accueil",
+    description:
+      "Accueil central pour lancer la lotterie et gérer le workflow NBA2KFL."
+  },
+  "/lotterie": {
+    eyebrow: "NBA2KFL Draft Room",
+    title: "Lotterie",
+    description:
+      "Lance le tirage, vérifie les chances et prépare le workflow redraft."
+  },
+  "/draft/franchises": {
+    eyebrow: "NBA2KFL Draft Room",
+    title: "Franchises",
+    description:
+      "Attribue les franchises NBA aux GMs selon le rang tiré au sort hors app."
+  },
+  "/draft/redraft": {
+    eyebrow: "NBA2KFL Draft Room",
+    title: "Redraft",
+    description:
+      "Sélectionne les joueurs avec un ordre snake basé sur les franchises attribuées."
+  },
+  "/franchises": {
+    eyebrow: "NBA2KFL Admin",
+    title: "Gestion franchises",
+    description:
+      "Sépare l'historique de draft des propriétaires long terme des franchises."
+  },
+  "/sign-in": {
+    eyebrow: "NBA2KFL Draft Room",
+    title: "Connexion GM",
+    description:
+      "Connecte ton compte GM avant de modifier une franchise ou un pick joueur."
+  }
+};
