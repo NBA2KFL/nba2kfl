@@ -71,6 +71,7 @@ const players = [
 describe("redraft picks API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.ADMIN_EMAILS;
     vi.mocked(getDraftDbClient).mockReturnValue(db);
     vi.mocked(auth.api.getSession).mockResolvedValue({
       user: { email: "chris@nba2kfl.local", name: "Chris" }
@@ -133,5 +134,35 @@ describe("redraft picks API", () => {
     expect(response.status).toBe(403);
     expect(payload).toEqual({ error: "Ce pick ne vous appartient pas." });
     expect(upsertRedraftPick).not.toHaveBeenCalled();
+  });
+
+  it("allows admins to update the current pick for any GM slot", async () => {
+    process.env.ADMIN_EMAILS = "admin@nba2kfl.local";
+    vi.mocked(auth.api.getSession).mockResolvedValue({
+      user: { email: "admin@nba2kfl.local", name: "Admin" }
+    });
+    db.query.mockResolvedValueOnce([
+      { id: "admin-user", email: "admin@nba2kfl.local" }
+    ]);
+
+    const response = await PATCH(
+      new Request("http://localhost/api/redraft-picks", {
+        body: JSON.stringify({ pickNumber: 1, playerName: "Victor Wembanyama" }),
+        method: "PATCH"
+      })
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ picks: {} });
+    expect(upsertRedraftPick).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({
+        pickNumber: 1,
+        selection: expect.objectContaining({ slot: 7, teamId: "sas" })
+      }),
+      players[0],
+      "admin-user"
+    );
   });
 });
