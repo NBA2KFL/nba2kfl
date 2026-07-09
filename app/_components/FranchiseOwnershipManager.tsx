@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Skeleton } from "@/components/ui/skeleton";
 import type {
   FranchiseOwner,
   FranchiseOwnership,
@@ -163,86 +164,94 @@ export function FranchiseOwnershipManagerView({
                 </tr>
               </thead>
               <tbody>
-                {NBA_TEAMS.map((team) => {
-                  const franchise = findFranchise(franchises, team.id);
-                  const ownerUpdate = toOwnerUpdate(franchise);
-                  const isSaving = savingTeamId === team.id;
+                {isLoading
+                  ? NBA_TEAMS.map((team) => (
+                      <tr key={team.id}>
+                        <td colSpan={6}>
+                          <Skeleton className="h-[38px] w-full rounded-[10px]" />
+                        </td>
+                      </tr>
+                    ))
+                  : NBA_TEAMS.map((team) => {
+                      const franchise = findFranchise(franchises, team.id);
+                      const ownerUpdate = toOwnerUpdate(franchise);
+                      const isSaving = savingTeamId === team.id;
 
-                  return (
-                    <tr key={team.id}>
-                      <td>
-                        <TeamCell team={team} />
-                      </td>
-                      <td>
-                        <select
-                          aria-label={`Propriétaire ${team.name}`}
-                          className="control-select"
-                          disabled={isLoading || savingTeamId !== null}
-                          onChange={(event) =>
-                            onChangeOwner(team.id, {
-                              ...ownerUpdate,
-                              userId: event.target.value || null
-                            })
-                          }
-                          value={franchise?.owner?.userId ?? ""}
-                        >
-                          <option value="">Sans propriétaire</option>
-                          {ownerOptions.map((owner) => (
-                            <option key={owner.userId} value={owner.userId}>
-                              {owner.displayName} - {owner.email}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          aria-label={`Libellé ${team.name}`}
-                          className="control-input"
-                          defaultValue={franchise?.label ?? ""}
-                          disabled={isLoading || savingTeamId !== null}
-                          onBlur={(event) =>
-                            onChangeOwner(team.id, {
-                              ...ownerUpdate,
-                              label: event.target.value.trim() || null
-                            })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <label className="ownership-primary-toggle">
-                          <input
-                            checked={Boolean(franchise?.isPrimary)}
-                            disabled={
-                              isLoading ||
-                              savingTeamId !== null ||
-                              !franchise?.owner
-                            }
-                            onChange={(event) =>
-                              onChangeOwner(team.id, {
-                                ...ownerUpdate,
-                                isPrimary: event.target.checked
-                              })
-                            }
-                            type="checkbox"
-                          />
-                          <span>Principale</span>
-                        </label>
-                      </td>
-                      <td className="status-cell">
-                        {franchise?.draftSlot
-                          ? `#${franchise.draftSlot} · ${franchise.draftGmName}`
-                          : "Hors draft"}
-                      </td>
-                      <td className="status-cell">
-                        {isSaving
-                          ? "Sauvegarde"
-                          : franchise?.owner
-                            ? franchise.owner.displayName
-                            : "Sans propriétaire"}
-                      </td>
-                    </tr>
-                  );
-                })}
+                      return (
+                        <tr key={team.id}>
+                          <td>
+                            <TeamCell team={team} />
+                          </td>
+                          <td>
+                            <select
+                              aria-label={`Propriétaire ${team.name}`}
+                              className="control-select"
+                              disabled={isLoading || savingTeamId !== null}
+                              onChange={(event) =>
+                                onChangeOwner(team.id, {
+                                  ...ownerUpdate,
+                                  userId: event.target.value || null
+                                })
+                              }
+                              value={franchise?.owner?.userId ?? ""}
+                            >
+                              <option value="">Sans propriétaire</option>
+                              {ownerOptions.map((owner) => (
+                                <option key={owner.userId} value={owner.userId}>
+                                  {owner.displayName} - {owner.email}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                              aria-label={`Libellé ${team.name}`}
+                              className="control-input"
+                              defaultValue={franchise?.label ?? ""}
+                              disabled={isLoading || savingTeamId !== null}
+                              onBlur={(event) =>
+                                onChangeOwner(team.id, {
+                                  ...ownerUpdate,
+                                  label: event.target.value.trim() || null
+                                })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <label className="ownership-primary-toggle">
+                              <input
+                                checked={Boolean(franchise?.isPrimary)}
+                                disabled={
+                                  isLoading ||
+                                  savingTeamId !== null ||
+                                  !franchise?.owner
+                                }
+                                onChange={(event) =>
+                                  onChangeOwner(team.id, {
+                                    ...ownerUpdate,
+                                    isPrimary: event.target.checked
+                                  })
+                                }
+                                type="checkbox"
+                              />
+                              <span>Principale</span>
+                            </label>
+                          </td>
+                          <td className="status-cell">
+                            {franchise?.draftSlot
+                              ? `#${franchise.draftSlot} · ${franchise.draftGmName}`
+                              : "Hors draft"}
+                          </td>
+                          <td className="status-cell">
+                            {isSaving
+                              ? "Sauvegarde"
+                              : franchise?.owner
+                                ? franchise.owner.displayName
+                                : "Sans propriétaire"}
+                          </td>
+                        </tr>
+                      );
+                    })}
               </tbody>
             </table>
           </div>

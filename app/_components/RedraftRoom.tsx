@@ -11,6 +11,7 @@ import {
   SelectItem,
   SelectTrigger
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
@@ -252,7 +253,19 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
         </div>
       </div>
 
-      {draftPicks.length === 0 ? (
+      {!hasLoaded ? (
+        <div className="grid grid-cols-[300px_minmax(0,1fr)] gap-0 max-[1040px]:grid-cols-1">
+          <div className="grid content-start gap-3.5 border-r border-command-border bg-command-surface-muted/45 p-4 max-[1040px]:border-r-0 max-[1040px]:border-b max-[1040px]:border-command-border">
+            <Skeleton className="h-[38px] w-full rounded-[10px]" />
+            <Skeleton className="h-24 w-full rounded-[10px]" />
+          </div>
+          <div className="grid gap-2.5 p-4">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton className="h-[60px] w-full rounded-[10px]" key={index} />
+            ))}
+          </div>
+        </div>
+      ) : draftPicks.length === 0 ? (
         <div
           className="grid min-h-[300px] content-center justify-items-center gap-2.5 p-8 text-center"
           role={selectionLoadError ? "alert" : undefined}

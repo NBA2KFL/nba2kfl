@@ -1,18 +1,10 @@
 import Link from "next/link";
 import { NBA_TEAMS } from "@/data/teams";
 import { PRIMARY_APP_NAV_ITEMS } from "@/lib/navigation";
-import { AppHeader } from "./_components/AppHeader";
 
 export default function Home() {
   return (
-    <main className="mx-auto w-[min(1240px,calc(100%-40px))] py-5 pb-10 max-[620px]:w-[min(100%-16px,1240px)] max-[620px]:pt-2.5">
-      <AppHeader
-        activeHref="/"
-        description="Accueil central pour lancer la lotterie et gérer le workflow NBA2KFL."
-        eyebrow="NBA2KFL Draft Room"
-        title="Accueil"
-      />
-
+    <>
       <section
         aria-labelledby="home-title"
         className="relative mt-4 grid min-w-0 grid-cols-[minmax(0,1fr)_300px] gap-0 overflow-hidden rounded-[18px] border border-command-border bg-command-surface shadow-[0_18px_48px_rgba(16,24,40,0.08)] max-[1040px]:grid-cols-1"
@@ -127,6 +119,6 @@ export default function Home() {
           </p>
         </div>
       </section>
-    </main>
+    </>
   );
 }

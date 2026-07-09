@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   createDraftSlots,
@@ -180,51 +181,59 @@ export function FranchiseSelectionBoard() {
             </tr>
           </thead>
           <tbody>
-            {selections.map((selection) => {
-              const selectedTeam = findTeam(selection.teamId);
-              const isNext = nextSelection?.slot === selection.slot;
+            {isLoading
+              ? Array.from({ length: selections.length }, (_, index) => (
+                  <tr className="border-b border-command-border" key={index}>
+                    <td className="px-3.5 py-2.5" colSpan={4}>
+                      <Skeleton className="h-[38px] w-full rounded-[10px]" />
+                    </td>
+                  </tr>
+                ))
+              : selections.map((selection) => {
+                  const selectedTeam = findTeam(selection.teamId);
+                  const isNext = nextSelection?.slot === selection.slot;
 
-              return (
-                <tr
-                  className={cn(
-                    "border-b border-command-border",
-                    isNext
-                      ? "bg-command-accent-soft shadow-[inset_3px_0_0_var(--color-command-accent)]"
-                      : "odd:bg-command-surface-muted/45 hover:bg-command-accent-soft/65"
-                  )}
-                  key={selection.slot}
-                >
-                  <td className="w-16 px-3.5 py-2.5 text-[0.98rem] font-[760] text-command-accent-dark">
-                    {selection.slot}
-                  </td>
-                  <td className="px-3.5 py-2.5">
-                    <span className="block min-h-[38px] rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.86rem] font-[670] leading-tight text-command-ink">
-                      {selection.gmName}
-                    </span>
-                  </td>
-                  <td className="px-3.5 py-2.5">
-                    <div
+                  return (
+                    <tr
                       className={cn(
-                        "grid items-center gap-2.5",
-                        selectedTeam
-                          ? "grid-cols-[30px_minmax(0,1fr)]"
-                          : "grid-cols-1"
+                        "border-b border-command-border",
+                        isNext
+                          ? "bg-command-accent-soft shadow-[inset_3px_0_0_var(--color-command-accent)]"
+                          : "odd:bg-command-surface-muted/45 hover:bg-command-accent-soft/65"
                       )}
+                      key={selection.slot}
                     >
-                      {selectedTeam ? <TeamLogo team={selectedTeam} /> : null}
-                      <span className="block min-h-[38px] rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.86rem] font-[670] leading-tight text-command-ink">
-                        {selectedTeam
-                          ? `${selectedTeam.abbreviation} - ${selectedTeam.name}`
-                          : "Franchise verrouillée"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3.5 py-2.5 text-[0.74rem] font-[720] text-command-muted">
-                    {selectedTeam ? "Verrouillé" : "Libre"}
-                  </td>
-                </tr>
-              );
-            })}
+                      <td className="w-16 px-3.5 py-2.5 text-[0.98rem] font-[760] text-command-accent-dark">
+                        {selection.slot}
+                      </td>
+                      <td className="px-3.5 py-2.5">
+                        <span className="block min-h-[38px] rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.86rem] font-[670] leading-tight text-command-ink">
+                          {selection.gmName}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-2.5">
+                        <div
+                          className={cn(
+                            "grid items-center gap-2.5",
+                            selectedTeam
+                              ? "grid-cols-[30px_minmax(0,1fr)]"
+                              : "grid-cols-1"
+                          )}
+                        >
+                          {selectedTeam ? <TeamLogo team={selectedTeam} /> : null}
+                          <span className="block min-h-[38px] rounded-[10px] border border-command-border bg-command-surface-muted px-3 py-2 text-[0.86rem] font-[670] leading-tight text-command-ink">
+                            {selectedTeam
+                              ? `${selectedTeam.abbreviation} - ${selectedTeam.name}`
+                              : "Franchise verrouillée"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3.5 py-2.5 text-[0.74rem] font-[720] text-command-muted">
+                        {selectedTeam ? "Verrouillé" : "Libre"}
+                      </td>
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
       </div>
