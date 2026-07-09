@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useDraftLive } from "./useDraftLive";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
   createSnakeDraftPicks,
@@ -70,6 +71,29 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     null
   );
   const [playerLoadError, setPlayerLoadError] = useState<string | null>(null);
+
+  const refreshRedraftState = useCallback(async () => {
+    const [selectionResult, picksResult] = await Promise.allSettled([
+      requestFranchiseSelections(),
+      requestRedraftPicks()
+    ]);
+
+    if (selectionResult.status === "fulfilled") {
+      setSelections(selectionResult.value);
+      setSelectionLoadError(null);
+    } else {
+      setSelectionLoadError(toErrorMessage(selectionResult.reason));
+    }
+
+    if (picksResult.status === "fulfilled") {
+      setPicksByNumber(picksResult.value);
+      setPickValidationError(null);
+    } else {
+      setPickValidationError(toErrorMessage(picksResult.reason));
+    }
+  }, []);
+
+  useDraftLive({ onRefresh: refreshRedraftState });
 
   useEffect(() => {
     let isMounted = true;

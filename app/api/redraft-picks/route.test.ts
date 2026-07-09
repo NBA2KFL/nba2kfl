@@ -11,11 +11,16 @@ import {
   seedGmDraftSlots
 } from "@/lib/franchise-db";
 import {
+  ensureDraftEventSchema,
+  insertDraftEvent
+} from "@/lib/draft-events";
+import {
   ensureRedraftPickSchema,
+  clearRedraftPicksForSlots,
   loadRedraftPicks,
   upsertRedraftPick
 } from "@/lib/redraft-picks";
-import { GET, PATCH } from "./route";
+import { DELETE, GET, PATCH } from "./route";
 
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => new Headers())
@@ -44,7 +49,13 @@ vi.mock("@/lib/nba2k-roster-db", () => ({
   loadNba2kRosterPlayers: vi.fn()
 }));
 
+vi.mock("@/lib/draft-events", () => ({
+  ensureDraftEventSchema: vi.fn(),
+  insertDraftEvent: vi.fn()
+}));
+
 vi.mock("@/lib/redraft-picks", () => ({
+  clearRedraftPicksForSlots: vi.fn(),
   ensureRedraftPickSchema: vi.fn(),
   loadRedraftPicks: vi.fn(),
   upsertRedraftPick: vi.fn()
@@ -93,6 +104,7 @@ describe("redraft picks API", () => {
     expect(seedGmDraftSlots).toHaveBeenCalledWith(db);
     expect(ensureNba2kRosterSchema).toHaveBeenCalledWith(db);
     expect(ensureRedraftPickSchema).toHaveBeenCalledWith(db);
+    expect(ensureDraftEventSchema).toHaveBeenCalledWith(db);
   });
 
   it("persists a selected player for the signed-in GM current pick", async () => {
@@ -115,6 +127,22 @@ describe("redraft picks API", () => {
       players[0],
       "user-7"
     );
+    expect(insertDraftEvent).toHaveBeenCalledWith(db, "redraft_pick_changed", {
+      pickNumber: 1,
+      slot: 7,
+      playerName: "Victor Wembanyama"
+    });
+  });
+
+  it("clears owned picks and emits a redraft pick event", async () => {
+    const response = await DELETE();
+
+    expect(response.status).toBe(200);
+    expect(clearRedraftPicksForSlots).toHaveBeenCalledWith(db, [7]);
+    expect(insertDraftEvent).toHaveBeenCalledWith(db, "redraft_pick_changed", {
+      slots: [7],
+      playerName: null
+    });
   });
 
   it("rejects player updates from a GM who does not own the current pick", async () => {
