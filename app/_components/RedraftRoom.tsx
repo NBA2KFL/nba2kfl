@@ -18,7 +18,9 @@ import {
   createSnakeDraftPicks,
   GM_DRAFT_SLOT_LINKS,
   REDRAFT_PICKS_STORAGE_KEY,
+  validateRedraftPickChange,
   type FranchiseSelection,
+  type RedraftPicksByNumber,
   type SnakeDraftPick
 } from "@/lib/redraft";
 
@@ -28,7 +30,6 @@ export const MAX_REDRAFT_ROUNDS = 14;
 const DEFAULT_ROUNDS = MAX_REDRAFT_ROUNDS;
 const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
 
-type PicksByNumber = Record<string, string>;
 type FranchiseSelectionsApiResponse = {
   selections?: FranchiseSelection[];
   error?: string;
@@ -55,9 +56,12 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
   const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
     []
   );
-  const [picksByNumber, setPicksByNumber] = useState<PicksByNumber>({});
+  const [picksByNumber, setPicksByNumber] = useState<RedraftPicksByNumber>({});
   const [openPickNumber, setOpenPickNumber] = useState<number | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [pickValidationError, setPickValidationError] = useState<string | null>(
+    null
+  );
   const [selectionLoadError, setSelectionLoadError] = useState<string | null>(
     null
   );
@@ -129,6 +133,10 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     () => createSnakeDraftPicks(selections, rounds),
     [rounds, selections]
   );
+  const playerPool = useMemo(
+    () => rosterPlayers.map((player) => player.fullName),
+    [rosterPlayers]
+  );
   const selectedPlayers = useMemo(
     () => new Set(Object.values(picksByNumber).filter(Boolean)),
     [picksByNumber]
@@ -161,11 +169,25 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
       return;
     }
 
+    const validation = validateRedraftPickChange({
+      draftPicks,
+      pickNumber,
+      picksByNumber,
+      playerName,
+      playerPool
+    });
+
+    if (!validation.valid) {
+      setPickValidationError(validation.message);
+      return;
+    }
+
+    setPickValidationError(null);
     setPicksByNumber((currentPicks) => {
       const nextPicks = { ...currentPicks };
 
-      if (playerName) {
-        nextPicks[pickNumber] = playerName;
+      if (validation.playerName) {
+        nextPicks[pickNumber] = validation.playerName;
       } else {
         delete nextPicks[pickNumber];
       }
@@ -175,6 +197,7 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
   }
 
   function clearPicks() {
+    setPickValidationError(null);
     setPicksByNumber((currentPicks) =>
       clearCurrentUserRedraftPicks(currentPicks, draftPicks, currentUserEmail)
     );
@@ -252,6 +275,15 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
           </strong>
         </div>
       </div>
+
+      {pickValidationError ? (
+        <div
+          className="border-b border-command-red-border bg-command-red-soft px-4 py-3 text-[0.86rem] font-[650] text-command-red-text"
+          role="alert"
+        >
+          {pickValidationError}
+        </div>
+      ) : null}
 
       {!hasLoaded ? (
         <div className="grid grid-cols-[300px_minmax(0,1fr)] gap-0 max-[1040px]:grid-cols-1">
@@ -565,7 +597,7 @@ export function canCurrentUserSelectRedraftPick(
 }
 
 export function clearCurrentUserRedraftPicks(
-  picksByNumber: PicksByNumber,
+  picksByNumber: RedraftPicksByNumber,
   draftPicks: readonly SnakeDraftPick[],
   currentUserEmail: string | null
 ) {
@@ -603,7 +635,7 @@ function getSelectedPlayerLabel(
   return player ? formatPlayerOption(player) : selectedPlayer;
 }
 
-function parseStoredPicks(storedValue: string | null): PicksByNumber {
+function parseStoredPicks(storedValue: string | null): RedraftPicksByNumber {
   if (!storedValue) {
     return {};
   }
@@ -615,7 +647,7 @@ function parseStoredPicks(storedValue: string | null): PicksByNumber {
       return {};
     }
 
-    const picks: PicksByNumber = {};
+    const picks: RedraftPicksByNumber = {};
 
     for (const [pickNumber, playerName] of Object.entries(parsed)) {
       if (Number.isInteger(Number(pickNumber)) && typeof playerName === "string") {
