@@ -15,5 +15,6 @@ describe("visible draft board links", () => {
     expect(markup).not.toContain('href="/draft"');
     expect(markup).not.toContain("Board draft");
     expect(markup).not.toContain("Voir la draft");
+    expect(markup).not.toContain("Joueurs disponibles");
   });
 });
