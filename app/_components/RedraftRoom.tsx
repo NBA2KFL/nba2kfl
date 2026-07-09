@@ -9,8 +9,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue
+  SelectTrigger
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
@@ -22,7 +21,9 @@ import {
 } from "@/lib/redraft";
 
 const NO_PLAYER_SELECTED = "__none__";
-const DEFAULT_ROUNDS = 4;
+const MIN_REDRAFT_ROUNDS = 1;
+export const MAX_REDRAFT_ROUNDS = 14;
+const DEFAULT_ROUNDS = MAX_REDRAFT_ROUNDS;
 const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
 
 type PicksByNumber = Record<string, string>;
@@ -46,6 +47,7 @@ export function RedraftRoom() {
     []
   );
   const [picksByNumber, setPicksByNumber] = useState<PicksByNumber>({});
+  const [openPickNumber, setOpenPickNumber] = useState<number | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [selectionLoadError, setSelectionLoadError] = useState<string | null>(
     null
@@ -89,9 +91,7 @@ export function RedraftRoom() {
       }
 
       setRounds(
-        Number.isInteger(restoredRounds) && restoredRounds >= 1
-          ? Math.min(restoredRounds, 8)
-          : DEFAULT_ROUNDS
+        normalizeRedraftRounds(restoredRounds)
       );
       setPicksByNumber(restoredPicks);
       setHasLoaded(true);
@@ -138,7 +138,7 @@ export function RedraftRoom() {
     const nextRounds = Number(value);
 
     if (Number.isInteger(nextRounds)) {
-      setRounds(Math.min(Math.max(nextRounds, 1), 8));
+      setRounds(normalizeRedraftRounds(nextRounds));
     }
   }
 
@@ -262,8 +262,8 @@ export function RedraftRoom() {
                 Tours
               </span>
               <Input
-                max={8}
-                min={1}
+                max={MAX_REDRAFT_ROUNDS}
+                min={MIN_REDRAFT_ROUNDS}
                 onChange={(event) => updateRounds(event.target.value)}
                 type="number"
                 value={rounds}
@@ -293,7 +293,17 @@ export function RedraftRoom() {
               <RedraftPickRow
                 currentPickNumber={currentPick?.pickNumber ?? null}
                 key={pick.pickNumber}
+                isPlayerPickerOpen={openPickNumber === pick.pickNumber}
                 onChange={updatePick}
+                onOpenChange={(isOpen) =>
+                  setOpenPickNumber((currentPickNumber) =>
+                    isOpen
+                      ? pick.pickNumber
+                      : currentPickNumber === pick.pickNumber
+                        ? null
+                        : currentPickNumber
+                  )
+                }
                 pick={pick}
                 players={rosterPlayers}
                 selectedPlayer={picksByNumber[pick.pickNumber] ?? ""}
@@ -309,21 +319,30 @@ export function RedraftRoom() {
 
 function RedraftPickRow({
   currentPickNumber,
+  isPlayerPickerOpen,
   onChange,
+  onOpenChange,
   pick,
   players,
   selectedPlayer,
   selectedPlayers
 }: {
   currentPickNumber: number | null;
+  isPlayerPickerOpen: boolean;
   onChange: (pickNumber: number, playerName: string) => void;
+  onOpenChange: (isOpen: boolean) => void;
   pick: SnakeDraftPick;
   players: Nba2kRosterPlayerSummary[];
   selectedPlayer: string;
   selectedPlayers: Set<string>;
 }) {
   const team = findTeam(pick.selection.teamId);
-  const playerOptions = getPlayerOptions(players, selectedPlayers, selectedPlayer);
+  const playerOptions = getVisiblePlayerOptions({
+    isOpen: isPlayerPickerOpen,
+    players,
+    selectedPlayer,
+    selectedPlayers
+  });
   const isCurrent = currentPickNumber === pick.pickNumber;
 
   return (
@@ -357,7 +376,8 @@ function RedraftPickRow({
       </div>
 
       <Select
-        disabled={playerOptions.length === 0 && !selectedPlayer}
+        disabled={players.length === 0 && !selectedPlayer}
+        onOpenChange={onOpenChange}
         onValueChange={(value) =>
           onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
         }
@@ -367,16 +387,22 @@ function RedraftPickRow({
           aria-label={`Joueur du pick ${pick.pickNumber}`}
           className="max-[620px]:col-span-full"
         >
-          <SelectValue />
+          <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+            {selectedPlayer
+              ? getSelectedPlayerLabel(players, selectedPlayer)
+              : "Choisir joueur"}
+          </span>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
-          {playerOptions.map((player) => (
-            <SelectItem key={player.value} value={player.value}>
-              {player.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
+        {isPlayerPickerOpen ? (
+          <SelectContent>
+            <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
+            {playerOptions.map((player) => (
+              <SelectItem key={player.value} value={player.value}>
+                {player.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        ) : null}
       </Select>
     </li>
   );
@@ -434,11 +460,21 @@ function getPlayerStatusText({
   };
 }
 
-function getPlayerOptions(
-  players: readonly Nba2kRosterPlayerSummary[],
-  selectedPlayers: ReadonlySet<string>,
-  selectedPlayer: string
-) {
+export function getVisiblePlayerOptions({
+  isOpen,
+  players,
+  selectedPlayer,
+  selectedPlayers
+}: {
+  isOpen: boolean;
+  players: readonly Nba2kRosterPlayerSummary[];
+  selectedPlayer: string;
+  selectedPlayers: ReadonlySet<string>;
+}): RedraftPlayerOption[] {
+  if (!isOpen) {
+    return [];
+  }
+
   const options = players
     .filter(
       (player) =>
@@ -456,6 +492,14 @@ function getPlayerOptions(
   return options;
 }
 
+export function normalizeRedraftRounds(rounds: number) {
+  if (!Number.isInteger(rounds)) {
+    return DEFAULT_ROUNDS;
+  }
+
+  return Math.min(Math.max(rounds, MIN_REDRAFT_ROUNDS), MAX_REDRAFT_ROUNDS);
+}
+
 function formatPlayerOption(player: Nba2kRosterPlayerSummary) {
   return [
     player.fullName,
@@ -465,6 +509,15 @@ function formatPlayerOption(player: Nba2kRosterPlayerSummary) {
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+function getSelectedPlayerLabel(
+  players: readonly Nba2kRosterPlayerSummary[],
+  selectedPlayer: string
+) {
+  const player = players.find((candidate) => candidate.fullName === selectedPlayer);
+
+  return player ? formatPlayerOption(player) : selectedPlayer;
 }
 
 function parseStoredPicks(storedValue: string | null): PicksByNumber {
