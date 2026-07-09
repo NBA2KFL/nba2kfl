@@ -153,7 +153,10 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
   function updatePick(pickNumber: number, playerName: string) {
     const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
 
-    if (!pick || !canCurrentUserEditRedraftPick(pick, currentUserEmail)) {
+    if (
+      !pick ||
+      !canCurrentUserSelectRedraftPick(pick, currentPick, currentUserEmail)
+    ) {
       return;
     }
 
@@ -310,8 +313,9 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
                 currentPickNumber={currentPick?.pickNumber ?? null}
                 key={pick.pickNumber}
                 isPlayerPickerOpen={openPickNumber === pick.pickNumber}
-                isUserAllowedToEdit={canCurrentUserEditRedraftPick(
+                isUserAllowedToEdit={canCurrentUserSelectRedraftPick(
                   pick,
+                  currentPick,
                   currentUserEmail
                 )}
                 onChange={updatePick}
@@ -414,7 +418,7 @@ function RedraftPickRow({
               ? getSelectedPlayerLabel(players, selectedPlayer)
               : isUserAllowedToEdit
                 ? "Choisir joueur"
-                : "Pick verrouillé"}
+                : "Pas à votre tour"}
           </span>
         </SelectTrigger>
         {isPlayerPickerOpen ? (
@@ -533,6 +537,17 @@ export function canCurrentUserEditRedraftPick(
   return (
     Boolean(allowedEmail) &&
     currentUserEmail?.trim().toLowerCase() === allowedEmail
+  );
+}
+
+export function canCurrentUserSelectRedraftPick(
+  pick: SnakeDraftPick,
+  currentPick: SnakeDraftPick | null | undefined,
+  currentUserEmail: string | null
+) {
+  return (
+    currentPick?.pickNumber === pick.pickNumber &&
+    canCurrentUserEditRedraftPick(pick, currentUserEmail)
   );
 }
 

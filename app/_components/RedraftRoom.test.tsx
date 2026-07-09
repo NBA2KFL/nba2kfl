@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canCurrentUserEditRedraftPick,
+  canCurrentUserSelectRedraftPick,
   clearCurrentUserRedraftPicks,
   getVisiblePlayerOptions,
   normalizeRedraftRounds
@@ -106,6 +107,20 @@ describe("canCurrentUserEditRedraftPick", () => {
       false
     );
     expect(canCurrentUserEditRedraftPick(chrisPick, null)).toBe(false);
+  });
+});
+
+describe("canCurrentUserSelectRedraftPick", () => {
+  it("only allows selecting the signed-in user's current pick", () => {
+    expect(
+      canCurrentUserSelectRedraftPick(chrisPick, chrisPick, "chris@nba2kfl.local")
+    ).toBe(true);
+    expect(
+      canCurrentUserSelectRedraftPick(chrisPick, akumaPick, "chris@nba2kfl.local")
+    ).toBe(false);
+    expect(
+      canCurrentUserSelectRedraftPick(chrisPick, chrisPick, "akuma@nba2kfl.local")
+    ).toBe(false);
   });
 });
 
