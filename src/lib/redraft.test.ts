@@ -6,6 +6,7 @@ import {
   DEFAULT_GM_DRAFT_ORDER,
   GM_DRAFT_SLOT_LINKS,
   parseFranchiseSelections,
+  validateRedraftPickChange,
   type FranchiseSelection
 } from "./redraft";
 
@@ -134,6 +135,53 @@ describe("createSnakeDraftPicks", () => {
 
     expect(picks).toHaveLength(6);
     expect(picks.every((pick) => pick.selection.teamId)).toBe(true);
+  });
+});
+
+describe("validateRedraftPickChange", () => {
+  const draftPicks = createSnakeDraftPicks(selections, 2);
+  const playerPool = ["Joueur 1", "Joueur 2", "Joueur 3"];
+
+  it("accepts only valid current-pick player choices", () => {
+    expect(
+      validateRedraftPickChange({
+        draftPicks,
+        pickNumber: 1,
+        picksByNumber: {},
+        playerName: "Joueur 1",
+        playerPool
+      })
+    ).toEqual({ valid: true, playerName: "Joueur 1" });
+
+    expect(
+      validateRedraftPickChange({
+        draftPicks,
+        pickNumber: 2,
+        picksByNumber: {},
+        playerName: "Joueur 2",
+        playerPool
+      })
+    ).toEqual({ valid: false, message: "Valide d'abord le pick #1." });
+
+    expect(
+      validateRedraftPickChange({
+        draftPicks,
+        pickNumber: 2,
+        picksByNumber: { 1: "Joueur 1" },
+        playerName: "Joueur 1",
+        playerPool
+      })
+    ).toEqual({ valid: false, message: "Ce joueur est deja pris." });
+
+    expect(
+      validateRedraftPickChange({
+        draftPicks,
+        pickNumber: 2,
+        picksByNumber: { 1: "Joueur 1" },
+        playerName: "Joueur inconnu",
+        playerPool
+      })
+    ).toEqual({ valid: false, message: "Ce joueur n'est pas disponible." });
   });
 });
 

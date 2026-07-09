@@ -15,6 +15,12 @@ export type SnakeDraftPick = {
   selection: AssignedFranchiseSelection;
 };
 
+export type RedraftPicksByNumber = Record<string, string>;
+
+export type RedraftPickValidationResult =
+  | { valid: true; playerName: string }
+  | { valid: false; message: string };
+
 export type GmDraftSlotLink = {
   slot: number;
   gmName: string;
@@ -96,6 +102,62 @@ export function createSnakeDraftPicks(
       selection
     }));
   });
+}
+
+export function validateRedraftPickChange({
+  draftPicks,
+  pickNumber,
+  picksByNumber,
+  playerName,
+  playerPool
+}: {
+  draftPicks: readonly SnakeDraftPick[];
+  pickNumber: number;
+  picksByNumber: RedraftPicksByNumber;
+  playerName: string;
+  playerPool: readonly string[];
+}): RedraftPickValidationResult {
+  const normalizedPlayerName = playerName.trim();
+  const pickExists = draftPicks.some((pick) => pick.pickNumber === pickNumber);
+
+  if (!pickExists) {
+    return { valid: false, message: "Pick introuvable." };
+  }
+
+  if (!normalizedPlayerName) {
+    return { valid: true, playerName: "" };
+  }
+
+  if (!playerPool.includes(normalizedPlayerName)) {
+    return { valid: false, message: "Ce joueur n'est pas disponible." };
+  }
+
+  const duplicatePick = Object.entries(picksByNumber).find(
+    ([storedPickNumber, storedPlayerName]) =>
+      Number(storedPickNumber) !== pickNumber &&
+      storedPlayerName === normalizedPlayerName
+  );
+
+  if (duplicatePick) {
+    return { valid: false, message: "Ce joueur est deja pris." };
+  }
+
+  const currentPick = draftPicks.find(
+    (pick) => !picksByNumber[pick.pickNumber]
+  );
+
+  if (
+    currentPick &&
+    !picksByNumber[pickNumber] &&
+    currentPick.pickNumber !== pickNumber
+  ) {
+    return {
+      valid: false,
+      message: `Valide d'abord le pick #${currentPick.pickNumber}.`
+    };
+  }
+
+  return { valid: true, playerName: normalizedPlayerName };
 }
 
 export function parseFranchiseSelections(

@@ -17,7 +17,9 @@ import {
   createSnakeDraftPicks,
   REDRAFT_PICKS_STORAGE_KEY,
   REDRAFT_PLAYER_POOL_STORAGE_KEY,
+  validateRedraftPickChange,
   type FranchiseSelection,
+  type RedraftPicksByNumber,
   type SnakeDraftPick
 } from "@/lib/redraft";
 
@@ -29,7 +31,6 @@ const DEFAULT_PLAYER_POOL = Array.from(
   (_, index) => `Joueur ${index + 1}`
 ).join("\n");
 
-type PicksByNumber = Record<string, string>;
 type FranchiseSelectionsApiResponse = {
   selections?: FranchiseSelection[];
   error?: string;
@@ -39,8 +40,11 @@ export function RedraftRoom() {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
   const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
   const [playerPoolText, setPlayerPoolText] = useState(DEFAULT_PLAYER_POOL);
-  const [picksByNumber, setPicksByNumber] = useState<PicksByNumber>({});
+  const [picksByNumber, setPicksByNumber] = useState<RedraftPicksByNumber>({});
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [pickValidationError, setPickValidationError] = useState<string | null>(
+    null
+  );
   const [selectionLoadError, setSelectionLoadError] = useState<string | null>(
     null
   );
@@ -130,11 +134,25 @@ export function RedraftRoom() {
   }
 
   function updatePick(pickNumber: number, playerName: string) {
+    const validation = validateRedraftPickChange({
+      draftPicks,
+      pickNumber,
+      picksByNumber,
+      playerName,
+      playerPool
+    });
+
+    if (!validation.valid) {
+      setPickValidationError(validation.message);
+      return;
+    }
+
+    setPickValidationError(null);
     setPicksByNumber((currentPicks) => {
       const nextPicks = { ...currentPicks };
 
-      if (playerName) {
-        nextPicks[pickNumber] = playerName;
+      if (validation.playerName) {
+        nextPicks[pickNumber] = validation.playerName;
       } else {
         delete nextPicks[pickNumber];
       }
@@ -144,6 +162,7 @@ export function RedraftRoom() {
   }
 
   function clearPicks() {
+    setPickValidationError(null);
     setPicksByNumber({});
   }
 
@@ -220,6 +239,15 @@ export function RedraftRoom() {
         </div>
       </div>
 
+      {pickValidationError ? (
+        <div
+          className="border-b border-command-red-border bg-command-red-soft px-4 py-3 text-[0.86rem] font-[650] text-command-red-text"
+          role="alert"
+        >
+          {pickValidationError}
+        </div>
+      ) : null}
+
       {draftPicks.length === 0 ? (
         <div
           className="grid min-h-[300px] content-center justify-items-center gap-2.5 p-8 text-center"
@@ -273,6 +301,10 @@ export function RedraftRoom() {
             {draftPicks.map((pick) => (
               <RedraftPickRow
                 currentPickNumber={currentPick?.pickNumber ?? null}
+                isEditable={
+                  Boolean(picksByNumber[pick.pickNumber]) ||
+                  currentPick?.pickNumber === pick.pickNumber
+                }
                 key={pick.pickNumber}
                 onChange={updatePick}
                 pick={pick}
@@ -290,6 +322,7 @@ export function RedraftRoom() {
 
 function RedraftPickRow({
   currentPickNumber,
+  isEditable,
   onChange,
   pick,
   playerPool,
@@ -297,6 +330,7 @@ function RedraftPickRow({
   selectedPlayers
 }: {
   currentPickNumber: number | null;
+  isEditable: boolean;
   onChange: (pickNumber: number, playerName: string) => void;
   pick: SnakeDraftPick;
   playerPool: string[];
@@ -338,6 +372,7 @@ function RedraftPickRow({
       </div>
 
       <Select
+        disabled={!isEditable}
         onValueChange={(value) =>
           onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
         }
@@ -406,7 +441,7 @@ function parsePlayerPool(value: string) {
     });
 }
 
-function parseStoredPicks(storedValue: string | null): PicksByNumber {
+function parseStoredPicks(storedValue: string | null): RedraftPicksByNumber {
   if (!storedValue) {
     return {};
   }
@@ -418,7 +453,7 @@ function parseStoredPicks(storedValue: string | null): PicksByNumber {
       return {};
     }
 
-    const picks: PicksByNumber = {};
+    const picks: RedraftPicksByNumber = {};
 
     for (const [pickNumber, playerName] of Object.entries(parsed)) {
       if (Number.isInteger(Number(pickNumber)) && typeof playerName === "string") {
