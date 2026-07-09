@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getVisiblePlayerOptions, normalizeRedraftRounds } from "./RedraftRoom";
+import {
+  canCurrentUserEditRedraftPick,
+  clearCurrentUserRedraftPicks,
+  getVisiblePlayerOptions,
+  normalizeRedraftRounds
+} from "./RedraftRoom";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
+import type { SnakeDraftPick } from "@/lib/redraft";
 
 const players: Nba2kRosterPlayerSummary[] = [
   {
@@ -28,6 +34,28 @@ const players: Nba2kRosterPlayerSummary[] = [
     teamName: "Los Angeles Lakers"
   }
 ];
+
+const chrisPick: SnakeDraftPick = {
+  pickNumber: 7,
+  round: 1,
+  roundPick: 7,
+  selection: {
+    slot: 7,
+    gmName: "Chris",
+    teamId: "sas"
+  }
+};
+
+const akumaPick: SnakeDraftPick = {
+  pickNumber: 8,
+  round: 1,
+  roundPick: 8,
+  selection: {
+    slot: 8,
+    gmName: "Akuma",
+    teamId: "den"
+  }
+};
 
 describe("getVisiblePlayerOptions", () => {
   it("does not build player options for closed pick menus", () => {
@@ -66,5 +94,34 @@ describe("normalizeRedraftRounds", () => {
   it("allows the full 14-round redraft and caps larger values", () => {
     expect(normalizeRedraftRounds(14)).toBe(14);
     expect(normalizeRedraftRounds(15)).toBe(14);
+  });
+});
+
+describe("canCurrentUserEditRedraftPick", () => {
+  it("only allows the user linked to the pick slot to select it", () => {
+    expect(canCurrentUserEditRedraftPick(chrisPick, "Chris@nba2kfl.local")).toBe(
+      true
+    );
+    expect(canCurrentUserEditRedraftPick(akumaPick, "chris@nba2kfl.local")).toBe(
+      false
+    );
+    expect(canCurrentUserEditRedraftPick(chrisPick, null)).toBe(false);
+  });
+});
+
+describe("clearCurrentUserRedraftPicks", () => {
+  it("only clears picks owned by the signed-in user", () => {
+    expect(
+      clearCurrentUserRedraftPicks(
+        {
+          7: "Victor Wembanyama",
+          8: "Nikola Jokic"
+        },
+        [chrisPick, akumaPick],
+        "chris@nba2kfl.local"
+      )
+    ).toEqual({
+      8: "Nikola Jokic"
+    });
   });
 });

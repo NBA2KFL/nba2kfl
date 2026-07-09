@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
   createSnakeDraftPicks,
+  GM_DRAFT_SLOT_LINKS,
   REDRAFT_PICKS_STORAGE_KEY,
   type FranchiseSelection,
   type SnakeDraftPick
@@ -39,8 +40,15 @@ type RedraftPlayerOption = {
   label: string;
   value: string;
 };
+type RedraftRoomProps = {
+  currentUserEmail: string | null;
+};
 
-export function RedraftRoom() {
+const USER_EMAILS_BY_DRAFT_SLOT = new Map(
+  GM_DRAFT_SLOT_LINKS.map((link) => [link.slot, link.userEmail.toLowerCase()])
+);
+
+export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
   const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
   const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
@@ -143,6 +151,12 @@ export function RedraftRoom() {
   }
 
   function updatePick(pickNumber: number, playerName: string) {
+    const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
+
+    if (!pick || !canCurrentUserEditRedraftPick(pick, currentUserEmail)) {
+      return;
+    }
+
     setPicksByNumber((currentPicks) => {
       const nextPicks = { ...currentPicks };
 
@@ -157,7 +171,9 @@ export function RedraftRoom() {
   }
 
   function clearPicks() {
-    setPicksByNumber({});
+    setPicksByNumber((currentPicks) =>
+      clearCurrentUserRedraftPicks(currentPicks, draftPicks, currentUserEmail)
+    );
   }
 
   return (
@@ -187,7 +203,7 @@ export function RedraftRoom() {
           className="grid w-full gap-2 max-[1040px]:grid-cols-3 max-[620px]:grid-cols-1"
         >
           <Button onClick={clearPicks} variant="secondary">
-            Vider picks
+            Vider mes picks
           </Button>
           <Button asChild>
             <Link href="/draft/franchises">Franchises</Link>
@@ -294,6 +310,10 @@ export function RedraftRoom() {
                 currentPickNumber={currentPick?.pickNumber ?? null}
                 key={pick.pickNumber}
                 isPlayerPickerOpen={openPickNumber === pick.pickNumber}
+                isUserAllowedToEdit={canCurrentUserEditRedraftPick(
+                  pick,
+                  currentUserEmail
+                )}
                 onChange={updatePick}
                 onOpenChange={(isOpen) =>
                   setOpenPickNumber((currentPickNumber) =>
@@ -320,6 +340,7 @@ export function RedraftRoom() {
 function RedraftPickRow({
   currentPickNumber,
   isPlayerPickerOpen,
+  isUserAllowedToEdit,
   onChange,
   onOpenChange,
   pick,
@@ -329,6 +350,7 @@ function RedraftPickRow({
 }: {
   currentPickNumber: number | null;
   isPlayerPickerOpen: boolean;
+  isUserAllowedToEdit: boolean;
   onChange: (pickNumber: number, playerName: string) => void;
   onOpenChange: (isOpen: boolean) => void;
   pick: SnakeDraftPick;
@@ -376,7 +398,7 @@ function RedraftPickRow({
       </div>
 
       <Select
-        disabled={players.length === 0 && !selectedPlayer}
+        disabled={!isUserAllowedToEdit || (players.length === 0 && !selectedPlayer)}
         onOpenChange={onOpenChange}
         onValueChange={(value) =>
           onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
@@ -390,7 +412,9 @@ function RedraftPickRow({
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
             {selectedPlayer
               ? getSelectedPlayerLabel(players, selectedPlayer)
-              : "Choisir joueur"}
+              : isUserAllowedToEdit
+                ? "Choisir joueur"
+                : "Pick verrouillé"}
           </span>
         </SelectTrigger>
         {isPlayerPickerOpen ? (
@@ -498,6 +522,37 @@ export function normalizeRedraftRounds(rounds: number) {
   }
 
   return Math.min(Math.max(rounds, MIN_REDRAFT_ROUNDS), MAX_REDRAFT_ROUNDS);
+}
+
+export function canCurrentUserEditRedraftPick(
+  pick: SnakeDraftPick,
+  currentUserEmail: string | null
+) {
+  const allowedEmail = USER_EMAILS_BY_DRAFT_SLOT.get(pick.selection.slot);
+
+  return (
+    Boolean(allowedEmail) &&
+    currentUserEmail?.trim().toLowerCase() === allowedEmail
+  );
+}
+
+export function clearCurrentUserRedraftPicks(
+  picksByNumber: PicksByNumber,
+  draftPicks: readonly SnakeDraftPick[],
+  currentUserEmail: string | null
+) {
+  const editablePickNumbers = new Set(
+    draftPicks
+      .filter((pick) => canCurrentUserEditRedraftPick(pick, currentUserEmail))
+      .map((pick) => String(pick.pickNumber))
+  );
+  const nextPicks = { ...picksByNumber };
+
+  for (const pickNumber of editablePickNumbers) {
+    delete nextPicks[pickNumber];
+  }
+
+  return nextPicks;
 }
 
 function formatPlayerOption(player: Nba2kRosterPlayerSummary) {

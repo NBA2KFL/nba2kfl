@@ -9,7 +9,7 @@ describe("visible draft board links", () => {
     const markup = [
       renderToStaticMarkup(<LotterySimulator />),
       renderToStaticMarkup(<FranchiseSelectionBoard />),
-      renderToStaticMarkup(<RedraftRoom />)
+      renderToStaticMarkup(<RedraftRoom currentUserEmail={null} />)
     ].join("");
 
     expect(markup).not.toContain('href="/draft"');

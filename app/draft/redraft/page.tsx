@@ -23,7 +23,7 @@ export default async function RedraftPage() {
       />
 
       <section aria-label="Redraft joueurs" className="mt-4">
-        <RedraftRoom />
+        <RedraftRoom currentUserEmail={session.user.email ?? null} />
       </section>
     </main>
   );
