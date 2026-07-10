@@ -5,6 +5,7 @@ import type { SnakeDraftPick } from "./redraft";
 import {
   clearRedraftPick,
   ensureRedraftPickSchema,
+  loadRedraftPickRecap,
   loadRedraftPicks,
   upsertRedraftPick
 } from "./redraft-picks";
@@ -57,6 +58,38 @@ describe("redraft picks persistence", () => {
       1: "Nikola Jokic",
       2: "Shai Gilgeous-Alexander"
     });
+  });
+
+  it("loads ordered redraft recap details", async () => {
+    const validatedAt = "2026-07-10T10:00:00.000Z";
+    const db = createDbClient([
+      [
+        {
+          pick_number: 7,
+          round: 1,
+          round_pick: 7,
+          slot: 7,
+          franchise_team_id: "sas",
+          player_name: "Victor Wembanyama",
+          updated_at: validatedAt
+        }
+      ]
+    ]);
+
+    await expect(loadRedraftPickRecap(db)).resolves.toEqual([
+      {
+        pickNumber: 7,
+        round: 1,
+        roundPick: 7,
+        slot: 7,
+        franchiseTeamId: "sas",
+        playerName: "Victor Wembanyama",
+        validatedAt
+      }
+    ]);
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("ORDER BY pick_number")
+    );
   });
 
   it("stores a selected player against the drafted franchise slot", async () => {

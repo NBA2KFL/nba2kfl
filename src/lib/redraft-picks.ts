@@ -6,6 +6,25 @@ type RedraftPickRow = {
   pick_number: number | string;
   player_name: string;
 };
+type RedraftPickRecapDbRow = {
+  pick_number: number | string;
+  round: number | string;
+  round_pick: number | string;
+  slot: number | string;
+  franchise_team_id: string;
+  player_name: string;
+  updated_at: Date | string;
+};
+
+export type RedraftPickRecapRow = {
+  pickNumber: number;
+  round: number;
+  roundPick: number;
+  slot: number;
+  franchiseTeamId: string;
+  playerName: string;
+  validatedAt: Date | string;
+};
 
 export async function ensureRedraftPickSchema(db: DraftDbClient) {
   await db.query(`
@@ -46,6 +65,33 @@ export async function loadRedraftPicks(
   return Object.fromEntries(
     rows.map((row) => [String(row.pick_number), row.player_name])
   );
+}
+
+export async function loadRedraftPickRecap(
+  db: DraftDbClient
+): Promise<RedraftPickRecapRow[]> {
+  const rows = await db.query<RedraftPickRecapDbRow>(`
+    SELECT
+      pick_number,
+      round,
+      round_pick,
+      slot,
+      franchise_team_id,
+      player_name,
+      updated_at
+    FROM redraft_picks
+    ORDER BY pick_number
+  `);
+
+  return rows.map((row) => ({
+    pickNumber: Number(row.pick_number),
+    round: Number(row.round),
+    roundPick: Number(row.round_pick),
+    slot: Number(row.slot),
+    franchiseTeamId: row.franchise_team_id,
+    playerName: row.player_name,
+    validatedAt: row.updated_at
+  }));
 }
 
 export async function upsertRedraftPick(
