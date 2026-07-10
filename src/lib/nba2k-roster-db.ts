@@ -6,6 +6,24 @@ const SOURCE = "nba2klab";
 export const NBA2KLAB_ROSTER_URL =
   "https://www.nba2klab.com/.netlify/functions/player-roster";
 
+const PLAYER_NAME_CORRECTIONS = new Map<
+  string,
+  readonly [firstName: string, lastName: string]
+>([
+  ["Alperen Sengunun", ["Alperen", "Şengün"]],
+  ["Daniel Gaffford", ["Daniel", "Gafford"]],
+  ["Dario Whitehead", ["Dariq", "Whitehead"]],
+  ["David Jones-Garcia", ["David", "Jones Garcia"]],
+  ["Domantatas Sabonis", ["Domantas", "Sabonis"]],
+  ["Luke Garza", ["Luka", "Garza"]],
+  ["Stephon Curry", ["Stephen", "Curry"]],
+  ["Terence Mann", ["Terance", "Mann"]],
+  ["Tristen Da Silva", ["Tristan", "da Silva"]],
+  ["Tristen Vukcevic", ["Tristan", "Vukčević"]],
+  ["Zacchararie Risacher", ["Zaccharie", "Risacher"]],
+  ["lvica Zubacac", ["Ivica", "Zubac"]]
+]);
+
 type Nba2kRosterSourcePlayer = Record<string, unknown>;
 
 type Nba2kRosterAttribute = string | number | boolean | null;
@@ -173,14 +191,14 @@ const NBA_DRAFT_CLASS_2026_ROOKIES: Nba2kRosterPlayerSummary[] = [
   draftClass2026Player(15, "Dailyn Swain", "SG/SF", 73, "chi"),
   draftClass2026Player(16, "Bennett Stirtz", "PG", 73, "okc"),
   draftClass2026Player(17, "Ebuka Okorie", "PG", 73, "det"),
-  draftClass2026Player(18, "Christian Anderson Jr.", "PG", 73, "cha"),
+  draftClass2026Player(18, "Christian Anderson", "PG", 73, "cha"),
   draftClass2026Player(19, "Allen Graves", "PF", 73, "tor"),
   draftClass2026Player(20, "Jayden Quaintance", "PF/C", 73, "sas"),
-  draftClass2026Player(21, "Karim Lopez", "SF", 73, "mem"),
+  draftClass2026Player(21, "Karim López", "SF", 73, "mem"),
   draftClass2026Player(22, "Labaron Philon Jr.", "PG", 73, "phi"),
   draftClass2026Player(23, "Zuby Ejiofor", "PF", 72, "atl"),
   draftClass2026Player(24, "Cameron Carr", "SG", 72, "lal"),
-  draftClass2026Player(25, "Sergio de Larrea", "PG/SG", 72, "dal"),
+  draftClass2026Player(25, "Sergio De Larrea", "PG/SG", 72, "dal"),
   draftClass2026Player(26, "Tarris Reed Jr.", "C", 72, "sas"),
   draftClass2026Player(27, "Chris Cenac Jr.", "PF/C", 72, "bos"),
   draftClass2026Player(28, "Joshua Jefferson", "PF/SF", 72, "bkn"),
@@ -256,8 +274,11 @@ export function normalizeNba2kRosterPlayer(
   sourcePlayer: Nba2kRosterSourcePlayer
 ): Nba2kRosterPlayer {
   const sourcePlayerId = requiredInteger(sourcePlayer.id, "id");
-  const firstName = requiredString(sourcePlayer.first_name, "first_name");
-  const lastName = requiredString(sourcePlayer.last_name, "last_name");
+  const sourceFirstName = requiredString(sourcePlayer.first_name, "first_name");
+  const sourceLastName = requiredString(sourcePlayer.last_name, "last_name");
+  const [firstName, lastName] = PLAYER_NAME_CORRECTIONS.get(
+    `${sourceFirstName} ${sourceLastName}`
+  ) ?? [sourceFirstName, sourceLastName];
   const teamName = requiredString(sourcePlayer.team, "team");
   const teamId = TEAM_IDS_BY_SOURCE_NAME.get(normalizeName(teamName));
 
@@ -456,5 +477,10 @@ function optionalInteger(value: unknown) {
 }
 
 function normalizeName(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
