@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useDraftLive } from "./useDraftLive";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
   createSnakeDraftPicks,
   GM_DRAFT_SLOT_LINKS,
-  REDRAFT_PICKS_STORAGE_KEY,
   validateRedraftPickChange,
   type FranchiseSelection,
   type RedraftPicksByNumber,
@@ -38,6 +38,10 @@ type PlayersApiResponse = {
   players?: Nba2kRosterPlayerSummary[];
   error?: string;
 };
+type RedraftPicksApiResponse = {
+  picks?: RedraftPicksByNumber;
+  error?: string;
+};
 type RedraftPlayerOption = {
   label: string;
   value: string;
@@ -52,13 +56,14 @@ type RedraftPickNotificationPayload = {
 };
 type RedraftRoomProps = {
   currentUserEmail: string | null;
+  isAdmin?: boolean;
 };
 
 const USER_EMAILS_BY_DRAFT_SLOT = new Map(
   GM_DRAFT_SLOT_LINKS.map((link) => [link.slot, link.userEmail.toLowerCase()])
 );
 
-export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
+export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomProps) {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
   const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
   const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
@@ -75,6 +80,29 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
   );
   const [playerLoadError, setPlayerLoadError] = useState<string | null>(null);
 
+  const refreshRedraftState = useCallback(async () => {
+    const [selectionResult, picksResult] = await Promise.allSettled([
+      requestFranchiseSelections(),
+      requestRedraftPicks()
+    ]);
+
+    if (selectionResult.status === "fulfilled") {
+      setSelections(selectionResult.value);
+      setSelectionLoadError(null);
+    } else {
+      setSelectionLoadError(toErrorMessage(selectionResult.reason));
+    }
+
+    if (picksResult.status === "fulfilled") {
+      setPicksByNumber(picksResult.value);
+      setPickValidationError(null);
+    } else {
+      setPickValidationError(toErrorMessage(picksResult.reason));
+    }
+  }, []);
+
+  useDraftLive({ onRefresh: refreshRedraftState });
+
   useEffect(() => {
     let isMounted = true;
 
@@ -82,13 +110,11 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
       const restoredRounds = Number(
         window.localStorage.getItem(REDRAFT_ROUNDS_STORAGE_KEY)
       );
-      const restoredPicks = parseStoredPicks(
-        window.localStorage.getItem(REDRAFT_PICKS_STORAGE_KEY)
-      );
 
-      const [selectionResult, playerResult] = await Promise.allSettled([
+      const [selectionResult, playerResult, picksResult] = await Promise.allSettled([
         requestFranchiseSelections(),
-        requestRosterPlayers()
+        requestRosterPlayers(),
+        requestRedraftPicks()
       ]);
 
       if (!isMounted) {
@@ -111,10 +137,17 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
         setPlayerLoadError(toErrorMessage(playerResult.reason));
       }
 
+      if (picksResult.status === "fulfilled") {
+        setPicksByNumber(picksResult.value);
+        setPickValidationError(null);
+      } else {
+        setPicksByNumber({});
+        setPickValidationError(toErrorMessage(picksResult.reason));
+      }
+
       setRounds(
         normalizeRedraftRounds(restoredRounds)
       );
-      setPicksByNumber(restoredPicks);
       setHasLoaded(true);
     }
 
@@ -131,11 +164,7 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
 
     window.localStorage.setItem(REDRAFT_ROUNDS_STORAGE_KEY, String(rounds));
-    window.localStorage.setItem(
-      REDRAFT_PICKS_STORAGE_KEY,
-      JSON.stringify(picksByNumber)
-    );
-  }, [hasLoaded, picksByNumber, rounds]);
+  }, [hasLoaded, rounds]);
 
   const draftPicks = useMemo(
     () => createSnakeDraftPicks(selections, rounds),
@@ -167,12 +196,17 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
   }
 
-  function updatePick(pickNumber: number, playerName: string) {
+  async function updatePick(pickNumber: number, playerName: string) {
     const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
 
     if (
       !pick ||
-      !canCurrentUserSelectRedraftPick(pick, currentPick, currentUserEmail)
+      !canCurrentUserSelectRedraftPick(
+        pick,
+        currentPick,
+        currentUserEmail,
+        isAdmin
+      )
     ) {
       return;
     }
@@ -191,39 +225,37 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
     }
 
     setPickValidationError(null);
-    if (validation.playerName) {
-      const team = findTeam(pick.selection.teamId);
-
-      void notifyRedraftPickValidated({
-        gmName: pick.selection.gmName,
-        pickNumber: pick.pickNumber,
-        playerName: validation.playerName,
-        round: pick.round,
-        roundPick: pick.roundPick,
-        teamName: team?.name ?? null
-      }).catch((error) => {
-        console.error("Redraft Discord notification failed", error);
-      });
-    }
-
-    setPicksByNumber((currentPicks) => {
-      const nextPicks = { ...currentPicks };
+    try {
+      setPicksByNumber(
+        await requestRedraftPickUpdate(pickNumber, validation.playerName)
+      );
 
       if (validation.playerName) {
-        nextPicks[pickNumber] = validation.playerName;
-      } else {
-        delete nextPicks[pickNumber];
-      }
+        const team = findTeam(pick.selection.teamId);
 
-      return nextPicks;
-    });
+        void notifyRedraftPickValidated({
+          gmName: pick.selection.gmName,
+          pickNumber: pick.pickNumber,
+          playerName: validation.playerName,
+          round: pick.round,
+          roundPick: pick.roundPick,
+          teamName: team?.name ?? null
+        }).catch((error) => {
+          console.error("Redraft Discord notification failed", error);
+        });
+      }
+    } catch (error) {
+      setPickValidationError(toErrorMessage(error));
+    }
   }
 
-  function clearPicks() {
+  async function clearPicks() {
     setPickValidationError(null);
-    setPicksByNumber((currentPicks) =>
-      clearCurrentUserRedraftPicks(currentPicks, draftPicks, currentUserEmail)
-    );
+    try {
+      setPicksByNumber(await requestClearRedraftPicks());
+    } catch (error) {
+      setPickValidationError(toErrorMessage(error));
+    }
   }
 
   return (
@@ -253,7 +285,7 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
           className="grid w-full gap-2 max-[1040px]:grid-cols-3 max-[620px]:grid-cols-1"
         >
           <Button onClick={clearPicks} variant="secondary">
-            Vider mes picks
+            {isAdmin ? "Vider tous les picks" : "Vider mes picks"}
           </Button>
           <Button asChild>
             <Link href="/draft/franchises">Franchises</Link>
@@ -384,7 +416,8 @@ export function RedraftRoom({ currentUserEmail }: RedraftRoomProps) {
                 isUserAllowedToEdit={canCurrentUserSelectRedraftPick(
                   pick,
                   currentPick,
-                  currentUserEmail
+                  currentUserEmail,
+                  isAdmin
                 )}
                 onChange={updatePick}
                 onOpenChange={(isOpen) =>
@@ -598,8 +631,13 @@ export function normalizeRedraftRounds(rounds: number) {
 
 export function canCurrentUserEditRedraftPick(
   pick: SnakeDraftPick,
-  currentUserEmail: string | null
+  currentUserEmail: string | null,
+  isAdmin: boolean = false
 ) {
+  if (isAdmin) {
+    return true;
+  }
+
   const allowedEmail = USER_EMAILS_BY_DRAFT_SLOT.get(pick.selection.slot);
 
   return (
@@ -611,11 +649,12 @@ export function canCurrentUserEditRedraftPick(
 export function canCurrentUserSelectRedraftPick(
   pick: SnakeDraftPick,
   currentPick: SnakeDraftPick | null | undefined,
-  currentUserEmail: string | null
+  currentUserEmail: string | null,
+  isAdmin: boolean = false
 ) {
   return (
     currentPick?.pickNumber === pick.pickNumber &&
-    canCurrentUserEditRedraftPick(pick, currentUserEmail)
+    canCurrentUserEditRedraftPick(pick, currentUserEmail, isAdmin)
   );
 }
 
@@ -672,32 +711,6 @@ function getSelectedPlayerLabel(
   return player ? formatPlayerOption(player) : selectedPlayer;
 }
 
-function parseStoredPicks(storedValue: string | null): RedraftPicksByNumber {
-  if (!storedValue) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(storedValue);
-
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
-    }
-
-    const picks: RedraftPicksByNumber = {};
-
-    for (const [pickNumber, playerName] of Object.entries(parsed)) {
-      if (Number.isInteger(Number(pickNumber)) && typeof playerName === "string") {
-        picks[pickNumber] = playerName;
-      }
-    }
-
-    return picks;
-  } catch {
-    return {};
-  }
-}
-
 function TeamLogo({ team }: { team: Team }) {
   return (
     <img
@@ -739,6 +752,57 @@ async function requestRosterPlayers() {
   }
 
   return payload.players;
+}
+
+export async function requestRedraftPicks() {
+  const response = await fetch("/api/redraft-picks");
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftPicksApiResponse;
+
+  return parseRedraftPicksResponse(response, payload);
+}
+
+export async function requestRedraftPickUpdate(
+  pickNumber: number,
+  playerName: string
+) {
+  const response = await fetch("/api/redraft-picks", {
+    body: JSON.stringify({ pickNumber, playerName }),
+    headers: { "Content-Type": "application/json" },
+    method: "PATCH"
+  });
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftPicksApiResponse;
+
+  return parseRedraftPicksResponse(response, payload);
+}
+
+async function requestClearRedraftPicks() {
+  const response = await fetch("/api/redraft-picks", {
+    method: "DELETE"
+  });
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftPicksApiResponse;
+
+  return parseRedraftPicksResponse(response, payload);
+}
+
+function parseRedraftPicksResponse(
+  response: Response,
+  payload: RedraftPicksApiResponse
+) {
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Impossible de charger les picks.");
+  }
+
+  if (!payload.picks || typeof payload.picks !== "object") {
+    throw new Error("Reponse picks invalide.");
+  }
+
+  return payload.picks;
 }
 
 function toErrorMessage(error: unknown) {

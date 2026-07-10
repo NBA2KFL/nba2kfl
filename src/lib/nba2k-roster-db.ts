@@ -6,6 +6,24 @@ const SOURCE = "nba2klab";
 export const NBA2KLAB_ROSTER_URL =
   "https://www.nba2klab.com/.netlify/functions/player-roster";
 
+const PLAYER_NAME_CORRECTIONS = new Map<
+  string,
+  readonly [firstName: string, lastName: string]
+>([
+  ["Alperen Sengunun", ["Alperen", "Şengün"]],
+  ["Daniel Gaffford", ["Daniel", "Gafford"]],
+  ["Dario Whitehead", ["Dariq", "Whitehead"]],
+  ["David Jones-Garcia", ["David", "Jones Garcia"]],
+  ["Domantatas Sabonis", ["Domantas", "Sabonis"]],
+  ["Luke Garza", ["Luka", "Garza"]],
+  ["Stephon Curry", ["Stephen", "Curry"]],
+  ["Terence Mann", ["Terance", "Mann"]],
+  ["Tristen Da Silva", ["Tristan", "da Silva"]],
+  ["Tristen Vukcevic", ["Tristan", "Vukčević"]],
+  ["Zacchararie Risacher", ["Zaccharie", "Risacher"]],
+  ["lvica Zubacac", ["Ivica", "Zubac"]]
+]);
+
 type Nba2kRosterSourcePlayer = Record<string, unknown>;
 
 type Nba2kRosterAttribute = string | number | boolean | null;
@@ -136,7 +154,7 @@ export async function loadNba2kRosterPlayers(
     ORDER BY rating DESC, full_name ASC
   `);
 
-  return rows.map((row) => ({
+  const rosterPlayers = rows.map((row) => ({
     sourcePlayerId: Number(row.source_player_id),
     fullName: row.full_name,
     position: row.position,
@@ -144,14 +162,123 @@ export async function loadNba2kRosterPlayers(
     teamId: row.team_id,
     teamName: row.team_name
   }));
+
+  const rosterNames = new Set(
+    rosterPlayers.map((player) => normalizeName(player.fullName))
+  );
+  const draftClassPlayers = NBA_DRAFT_CLASS_2026_ROOKIES.filter(
+    (player) => !rosterNames.has(normalizeName(player.fullName))
+  );
+
+  return [...rosterPlayers, ...draftClassPlayers].sort(compareRosterPlayers);
+}
+
+const NBA_DRAFT_CLASS_2026_ROOKIES: Nba2kRosterPlayerSummary[] = [
+  draftClass2026Player(1, "AJ Dybantsa", "SF", 82, "was"),
+  draftClass2026Player(2, "Darryn Peterson", "SG/PG", 78, "uta"),
+  draftClass2026Player(3, "Cameron Boozer", "PF", 77, "mem"),
+  draftClass2026Player(4, "Caleb Wilson", "SF/PF", 76, "chi"),
+  draftClass2026Player(5, "Keaton Wagler", "SG/PG", 75, "lac"),
+  draftClass2026Player(6, "Mikel Brown Jr.", "PG", 75, "bkn"),
+  draftClass2026Player(7, "Darius Acuff Jr.", "PG", 75, "sac"),
+  draftClass2026Player(8, "Kingston Flemings", "PG", 75, "atl"),
+  draftClass2026Player(9, "Morez Johnson Jr.", "PF/C", 74, "dal"),
+  draftClass2026Player(10, "Brayden Burries", "SG/PG", 74, "mil"),
+  draftClass2026Player(11, "Yaxel Lendeborg", "PF", 74, "gsw"),
+  draftClass2026Player(12, "Aday Mara", "C", 74, "okc"),
+  draftClass2026Player(13, "Nate Ament", "SF", 74, "mil"),
+  draftClass2026Player(14, "Hannes Steinbach", "PF", 74, "cha"),
+  draftClass2026Player(15, "Dailyn Swain", "SG/SF", 73, "chi"),
+  draftClass2026Player(16, "Bennett Stirtz", "PG", 73, "okc"),
+  draftClass2026Player(17, "Ebuka Okorie", "PG", 73, "det"),
+  draftClass2026Player(18, "Christian Anderson", "PG", 73, "cha"),
+  draftClass2026Player(19, "Allen Graves", "PF", 73, "tor"),
+  draftClass2026Player(20, "Jayden Quaintance", "PF/C", 73, "sas"),
+  draftClass2026Player(21, "Karim López", "SF", 73, "mem"),
+  draftClass2026Player(22, "Labaron Philon Jr.", "PG", 73, "phi"),
+  draftClass2026Player(23, "Zuby Ejiofor", "PF", 72, "atl"),
+  draftClass2026Player(24, "Cameron Carr", "SG", 72, "lal"),
+  draftClass2026Player(25, "Sergio De Larrea", "PG/SG", 72, "dal"),
+  draftClass2026Player(26, "Tarris Reed Jr.", "C", 72, "sas"),
+  draftClass2026Player(27, "Chris Cenac Jr.", "PF/C", 72, "bos"),
+  draftClass2026Player(28, "Joshua Jefferson", "PF/SF", 72, "bkn"),
+  draftClass2026Player(29, "Alex Karaban", "SF/PF", 72, "sac"),
+  draftClass2026Player(30, "Koa Peat", "PF", 72, "phx"),
+  draftClass2026Player(31, "Bruce Thornton", "PG", 70, "hou"),
+  draftClass2026Player(32, "Richie Saunders", "SG", 70, "mem"),
+  draftClass2026Player(33, "Isaiah Evans", "SF", 70, "min"),
+  draftClass2026Player(34, "Meleek Thomas", "SG/PG", 70, "cle"),
+  draftClass2026Player(35, "Trevon Brazile", "PF", 70, "den"),
+  draftClass2026Player(36, "Baba Miller", "SF", 70, "lac"),
+  draftClass2026Player(37, "Ryan Conwell", "SG", 70, "mia"),
+  draftClass2026Player(38, "Braden Smith", "PG", 70, "ind"),
+  draftClass2026Player(39, "Jack Kayil", "PG", 70, "nyk"),
+  draftClass2026Player(40, "Dillon Mitchell", "SF", 70, "bos"),
+  draftClass2026Player(41, "Otega Oweh", "SG", 70, "okc"),
+  draftClass2026Player(42, "Ja'Kobi Gillespie", "PG", 70, "sas"),
+  draftClass2026Player(43, "Tyler Bilodeau", "PF", 70, "bkn"),
+  draftClass2026Player(44, "Maliq Brown", "PF", 70, "sas"),
+  draftClass2026Player(45, "Emanuel Sharp", "SG", 70, "sac"),
+  draftClass2026Player(46, "Felix Okpara", "C", 67, "was"),
+  draftClass2026Player(47, "Tyler Nickel", "SG", 67, "nyk"),
+  draftClass2026Player(48, "Tobi Lawal", "PF", 67, "dal"),
+  draftClass2026Player(49, "Bryce Hopkins", "SF", 67, "den"),
+  draftClass2026Player(50, "Jaden Bradley", "PG", 67, "tor"),
+  draftClass2026Player(51, "Izaiyah Nelson", "PF/C", 67, "orl"),
+  draftClass2026Player(52, "Henri Veesaar", "C", 67, "atl"),
+  draftClass2026Player(53, "Ugonna Onyenso", "C", 67, "det"),
+  draftClass2026Player(54, "Lajae Jones", "SG", 67, "gsw"),
+  draftClass2026Player(55, "Nick Martinelli", "SF", 67, "lac"),
+  draftClass2026Player(56, "Vsevolod Ishchenko", "SF", 67, "dal"),
+  draftClass2026Player(57, "Narcisse Ngoy", "C", 67, "lac"),
+  draftClass2026Player(58, "Jaron Pierre Jr.", "SG", 67, "nop"),
+  draftClass2026Player(59, "Trey Kaufman-Renn", "PF", 67, "min"),
+  draftClass2026Player(60, "Malique Lewis", "SF", 67, "mil")
+];
+
+function draftClass2026Player(
+  pickNumber: number,
+  fullName: string,
+  position: string,
+  rating: number,
+  teamId: string
+): Nba2kRosterPlayerSummary {
+  const team = NBA_TEAMS.find((candidate) => candidate.id === teamId);
+
+  if (!team) {
+    throw new Error(`Unknown NBA draft class team id: ${teamId}`);
+  }
+
+  return {
+    sourcePlayerId: -2026000 - pickNumber,
+    fullName,
+    position,
+    rating,
+    teamId,
+    teamName: team.name
+  };
+}
+
+function compareRosterPlayers(
+  player: Nba2kRosterPlayerSummary,
+  otherPlayer: Nba2kRosterPlayerSummary
+) {
+  if (player.rating !== otherPlayer.rating) {
+    return otherPlayer.rating - player.rating;
+  }
+
+  return player.fullName.localeCompare(otherPlayer.fullName);
 }
 
 export function normalizeNba2kRosterPlayer(
   sourcePlayer: Nba2kRosterSourcePlayer
 ): Nba2kRosterPlayer {
   const sourcePlayerId = requiredInteger(sourcePlayer.id, "id");
-  const firstName = requiredString(sourcePlayer.first_name, "first_name");
-  const lastName = requiredString(sourcePlayer.last_name, "last_name");
+  const sourceFirstName = requiredString(sourcePlayer.first_name, "first_name");
+  const sourceLastName = requiredString(sourcePlayer.last_name, "last_name");
+  const [firstName, lastName] = PLAYER_NAME_CORRECTIONS.get(
+    `${sourceFirstName} ${sourceLastName}`
+  ) ?? [sourceFirstName, sourceLastName];
   const teamName = requiredString(sourcePlayer.team, "team");
   const teamId = TEAM_IDS_BY_SOURCE_NAME.get(normalizeName(teamName));
 
@@ -350,5 +477,10 @@ function optionalInteger(value: unknown) {
 }
 
 function normalizeName(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }

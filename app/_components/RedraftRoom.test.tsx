@@ -5,7 +5,9 @@ import {
   clearCurrentUserRedraftPicks,
   getVisiblePlayerOptions,
   notifyRedraftPickValidated,
-  normalizeRedraftRounds
+  normalizeRedraftRounds,
+  requestRedraftPickUpdate,
+  requestRedraftPicks
 } from "./RedraftRoom";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import type { SnakeDraftPick } from "@/lib/redraft";
@@ -109,6 +111,13 @@ describe("canCurrentUserEditRedraftPick", () => {
     );
     expect(canCurrentUserEditRedraftPick(chrisPick, null)).toBe(false);
   });
+
+  it("allows admins to edit picks for any GM slot", () => {
+    expect(canCurrentUserEditRedraftPick(chrisPick, "admin@nba2kfl.local", true)).toBe(
+      true
+    );
+    expect(canCurrentUserEditRedraftPick(akumaPick, null, true)).toBe(true);
+  });
 });
 
 describe("canCurrentUserSelectRedraftPick", () => {
@@ -121,6 +130,25 @@ describe("canCurrentUserSelectRedraftPick", () => {
     ).toBe(false);
     expect(
       canCurrentUserSelectRedraftPick(chrisPick, chrisPick, "akuma@nba2kfl.local")
+    ).toBe(false);
+  });
+
+  it("allows admins to select the current pick for any GM slot", () => {
+    expect(
+      canCurrentUserSelectRedraftPick(
+        chrisPick,
+        chrisPick,
+        "admin@nba2kfl.local",
+        true
+      )
+    ).toBe(true);
+    expect(
+      canCurrentUserSelectRedraftPick(
+        chrisPick,
+        akumaPick,
+        "admin@nba2kfl.local",
+        true
+      )
     ).toBe(false);
   });
 });
@@ -174,5 +202,39 @@ describe("notifyRedraftPickValidated", () => {
       headers: { "content-type": "application/json" },
       method: "POST"
     });
+  });
+});
+
+describe("redraft picks API requests", () => {
+  it("loads persisted picks from the redraft API", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ picks: { 7: "Victor Wembanyama" } })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestRedraftPicks()).resolves.toEqual({
+      7: "Victor Wembanyama"
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/api/redraft-picks");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("persists a player selection through the redraft API", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ picks: { 7: "Victor Wembanyama" } })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      requestRedraftPickUpdate(7, "Victor Wembanyama")
+    ).resolves.toEqual({ 7: "Victor Wembanyama" });
+    expect(fetchMock).toHaveBeenCalledWith("/api/redraft-picks", {
+      body: JSON.stringify({ pickNumber: 7, playerName: "Victor Wembanyama" }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH"
+    });
+
+    vi.unstubAllGlobals();
   });
 });

@@ -23,11 +23,17 @@ export function requireAdminEmail(session: AdminSessionLike | null) {
 
   const email = session.user?.email?.trim().toLowerCase();
 
-  if (!email || !getAdminEmails().has(email)) {
+  if (!isAdminEmail(email)) {
     throw new AdminForbiddenError();
   }
 
   return email;
+}
+
+export function isAdminEmail(email: string | null | undefined) {
+  const normalizedEmail = email?.trim().toLowerCase();
+
+  return Boolean(normalizedEmail && getAdminEmails().has(normalizedEmail));
 }
 
 function getAdminEmails() {
