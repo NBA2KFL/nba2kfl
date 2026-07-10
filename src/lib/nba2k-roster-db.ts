@@ -50,6 +50,7 @@ export type Nba2kRosterPlayer = {
 
 export type Nba2kRosterPlayerSummary = {
   sourcePlayerId: number;
+  nbaPlayerId: number | null;
   fullName: string;
   position: string | null;
   rating: number;
@@ -59,11 +60,33 @@ export type Nba2kRosterPlayerSummary = {
 
 type Nba2kRosterPlayerSummaryRow = {
   source_player_id: number | string;
+  nba_player_id: number | string | null;
   full_name: string;
   position: string | null;
   rating: number | string;
   team_id: string;
   team_name: string;
+};
+type RosterPlayerIdentityRow = {
+  source_player_id: number | string;
+  full_name: string;
+  nba_player_id: number | string | null;
+};
+type UpdatedNbaPlayerRows = {
+  updated_players: number | string;
+};
+type RosterPlayerMediaRow = {
+  nba_player_id: number | string | null;
+};
+
+export type RosterPlayerIdentity = {
+  sourcePlayerId: number;
+  fullName: string;
+  nbaPlayerId: number | null;
+};
+export type RosterNbaPlayerIdUpdate = {
+  sourcePlayerId: number;
+  nbaPlayerId: number;
 };
 
 export function parseNba2kRosterSourcePayload(
@@ -129,6 +152,11 @@ export async function ensureNba2kRosterSchema(db: DraftDbClient) {
   `);
 
   await db.query(`
+    ALTER TABLE nba2k_roster_players
+    ADD COLUMN IF NOT EXISTS nba_player_id bigint
+  `);
+
+  await db.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS nba2k_roster_players_source_key
     ON nba2k_roster_players (game_version, source, source_player_id)
   `);
@@ -145,6 +173,7 @@ export async function loadNba2kRosterPlayers(
   const rows = await db.query<Nba2kRosterPlayerSummaryRow>(`
     SELECT
       source_player_id,
+      nba_player_id,
       full_name,
       position,
       rating,
@@ -156,6 +185,10 @@ export async function loadNba2kRosterPlayers(
 
   const rosterPlayers = rows.map((row) => ({
     sourcePlayerId: Number(row.source_player_id),
+    nbaPlayerId:
+      row.nba_player_id === null || row.nba_player_id === undefined
+        ? null
+        : Number(row.nba_player_id),
     fullName: row.full_name,
     position: row.position,
     rating: Number(row.rating),
@@ -171,6 +204,93 @@ export async function loadNba2kRosterPlayers(
   );
 
   return [...rosterPlayers, ...draftClassPlayers].sort(compareRosterPlayers);
+}
+
+export async function loadRosterPlayerIdentities(
+  db: DraftDbClient
+): Promise<RosterPlayerIdentity[]> {
+  const rows = await db.query<RosterPlayerIdentityRow>(`
+    SELECT source_player_id, full_name, nba_player_id
+    FROM nba2k_roster_players
+    WHERE game_version = '${GAME_VERSION}'
+      AND source = '${SOURCE}'
+    ORDER BY source_player_id
+  `);
+
+  return rows.map((row) => ({
+    sourcePlayerId: Number(row.source_player_id),
+    fullName: row.full_name,
+    nbaPlayerId:
+      row.nba_player_id === null || row.nba_player_id === undefined
+        ? null
+        : Number(row.nba_player_id)
+  }));
+}
+
+export async function loadRosterPlayerMedia(
+  db: DraftDbClient,
+  sourcePlayerId: number
+) {
+  const rows = await db.query<RosterPlayerMediaRow>(
+    `
+      SELECT nba_player_id
+      FROM nba2k_roster_players
+      WHERE game_version = '${GAME_VERSION}'
+        AND source = '${SOURCE}'
+        AND source_player_id = $1
+      LIMIT 1
+    `,
+    [sourcePlayerId]
+  );
+  const row = rows[0];
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    nbaPlayerId:
+      row.nba_player_id === null ? null : Number(row.nba_player_id)
+  };
+}
+
+export async function updateRosterNbaPlayerIds(
+  db: DraftDbClient,
+  updates: readonly RosterNbaPlayerIdUpdate[]
+) {
+  if (updates.length === 0) {
+    return { updatedPlayers: 0 };
+  }
+
+  const rows = await db.query<UpdatedNbaPlayerRows>(
+    `
+      WITH input AS (
+        SELECT
+          "sourcePlayerId" AS source_player_id,
+          "nbaPlayerId" AS nba_player_id
+        FROM jsonb_to_recordset($1::jsonb) AS raw(
+          "sourcePlayerId" integer,
+          "nbaPlayerId" bigint
+        )
+      ),
+      updated AS (
+        UPDATE nba2k_roster_players AS roster
+        SET nba_player_id = input.nba_player_id, updated_at = now()
+        FROM input
+        WHERE roster.game_version = '${GAME_VERSION}'
+          AND roster.source = '${SOURCE}'
+          AND roster.source_player_id = input.source_player_id
+        RETURNING roster.source_player_id
+      )
+      SELECT count(*)::int AS updated_players
+      FROM updated
+    `,
+    [JSON.stringify(updates)]
+  );
+
+  return {
+    updatedPlayers: Number(rows[0]?.updated_players ?? 0)
+  };
 }
 
 const NBA_DRAFT_CLASS_2026_ROOKIES: Nba2kRosterPlayerSummary[] = [
@@ -251,6 +371,7 @@ function draftClass2026Player(
 
   return {
     sourcePlayerId: -2026000 - pickNumber,
+    nbaPlayerId: null,
     fullName,
     position,
     rating,

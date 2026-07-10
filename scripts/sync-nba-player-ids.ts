@@ -2,48 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { Pool } from "pg";
 import type { DraftDbClient } from "../src/lib/draft-db.ts";
-import {
-  ensureNba2kRosterSchema,
-  NBA2KLAB_ROSTER_URL,
-  normalizeNba2kRosterPlayer,
-  parseNba2kRosterSourcePayload,
-  upsertNba2kRosterPlayers
-} from "../src/lib/nba2k-roster-db.ts";
 import { syncNbaPlayerIds } from "../src/lib/nba-player-media-sync.ts";
+import { ensureNba2kRosterSchema } from "../src/lib/nba2k-roster-db.ts";
 
-type SyncOptions = {
-  dryRun?: boolean;
-  fetchImpl?: typeof fetch;
-  sourceUrl?: string;
-};
-
-export async function syncNba2k26Rosters({
-  dryRun = false,
-  fetchImpl = fetch,
-  sourceUrl = process.env.NBA2K_ROSTER_SOURCE_URL || NBA2KLAB_ROSTER_URL
-}: SyncOptions = {}) {
-  const response = await fetchImpl(sourceUrl);
-
-  if (!response.ok) {
-    throw new Error(
-      `Unable to fetch NBA 2K roster source: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const sourcePlayers = parseNba2kRosterSourcePayload(await response.json());
-  const normalizedPlayers = sourcePlayers.map(normalizeNba2kRosterPlayer);
-  const teamCount = new Set(normalizedPlayers.map((player) => player.teamId)).size;
-
-  if (dryRun) {
-    return {
-      dryRun,
-      sourceUrl,
-      fetchedPlayers: sourcePlayers.length,
-      importedPlayers: 0,
-      teamCount
-    };
-  }
-
+export async function syncConfiguredNbaPlayerIds() {
   loadEnvFile(".env.local");
   loadEnvFile(".env");
 
@@ -51,24 +13,14 @@ export async function syncNba2k26Rosters({
     throw new Error("DATABASE_URL is required.");
   }
 
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
-  });
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
     const db = createDbClient(pool);
-    await ensureNba2kRosterSchema(db);
-    const result = await upsertNba2kRosterPlayers(db, sourcePlayers);
-    const nbaMedia = await syncNbaPlayerIds(db);
 
-    return {
-      dryRun,
-      sourceUrl,
-      fetchedPlayers: sourcePlayers.length,
-      importedPlayers: result.importedPlayers,
-      teamCount,
-      nbaMedia
-    };
+    await ensureNba2kRosterSchema(db);
+
+    return await syncNbaPlayerIds(db);
   } finally {
     await pool.end();
   }
@@ -118,11 +70,7 @@ function unwrapQuotedValue(value: string) {
 }
 
 async function main() {
-  const result = await syncNba2k26Rosters({
-    dryRun: process.argv.includes("--dry-run")
-  });
-
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(await syncConfiguredNbaPlayerIds(), null, 2));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

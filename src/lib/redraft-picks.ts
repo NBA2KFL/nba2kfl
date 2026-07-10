@@ -6,6 +6,45 @@ type RedraftPickRow = {
   pick_number: number | string;
   player_name: string;
 };
+type RedraftPickRecapDbRow = {
+  pick_number: number | string;
+  round: number | string;
+  round_pick: number | string;
+  slot: number | string;
+  franchise_team_id: string;
+  player_name: string;
+  nba_player_id: number | string | null;
+  updated_at: Date | string;
+};
+type RedraftRoundRecapDbRow = {
+  pick_number: number | string;
+  slot: number | string;
+  player_name: string;
+};
+
+export type RedraftPickRecapRow = {
+  pickNumber: number;
+  round: number;
+  roundPick: number;
+  slot: number;
+  franchiseTeamId: string;
+  playerName: string;
+  nbaPlayerId: number | null;
+  validatedAt: Date | string;
+};
+
+export async function loadRedraftRoundRecapItems(db: DraftDbClient, round: number) {
+  const rows = await db.query<RedraftRoundRecapDbRow>(
+    `SELECT pick_number, slot, player_name FROM redraft_picks
+     WHERE round = $1 AND player_name IS NOT NULL ORDER BY pick_number`,
+    [round]
+  );
+  return rows.map((row) => ({
+    pickNumber: Number(row.pick_number),
+    slot: Number(row.slot),
+    playerName: row.player_name
+  }));
+}
 
 export async function ensureRedraftPickSchema(db: DraftDbClient) {
   await db.query(`
@@ -46,6 +85,42 @@ export async function loadRedraftPicks(
   return Object.fromEntries(
     rows.map((row) => [String(row.pick_number), row.player_name])
   );
+}
+
+export async function loadRedraftPickRecap(
+  db: DraftDbClient
+): Promise<RedraftPickRecapRow[]> {
+  const rows = await db.query<RedraftPickRecapDbRow>(`
+    SELECT
+      redraft.pick_number,
+      redraft.round,
+      redraft.round_pick,
+      redraft.slot,
+      redraft.franchise_team_id,
+      redraft.player_name,
+      roster.nba_player_id,
+      redraft.updated_at
+    FROM redraft_picks AS redraft
+    LEFT JOIN nba2k_roster_players AS roster
+      ON roster.source_player_id = redraft.roster_source_player_id
+      AND roster.game_version = 'nba2k26'
+      AND roster.source = 'nba2klab'
+    ORDER BY redraft.pick_number
+  `);
+
+  return rows.map((row) => ({
+    pickNumber: Number(row.pick_number),
+    round: Number(row.round),
+    roundPick: Number(row.round_pick),
+    slot: Number(row.slot),
+    franchiseTeamId: row.franchise_team_id,
+    playerName: row.player_name,
+    nbaPlayerId:
+      row.nba_player_id === null || row.nba_player_id === undefined
+        ? null
+        : Number(row.nba_player_id),
+    validatedAt: row.updated_at
+  }));
 }
 
 export async function upsertRedraftPick(

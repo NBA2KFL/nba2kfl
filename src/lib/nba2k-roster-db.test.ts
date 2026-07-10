@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { DraftDbClient } from "./draft-db";
 import {
   ensureNba2kRosterSchema,
+  loadRosterPlayerMedia,
+  loadRosterPlayerIdentities,
   loadNba2kRosterPlayers,
   normalizeNba2kRosterPlayer,
   parseNba2kRosterSourcePayload,
+  updateRosterNbaPlayerIds,
   upsertNba2kRosterPlayers
 } from "./nba2k-roster-db";
 
@@ -105,10 +108,14 @@ describe("NBA 2K roster persistence", () => {
     );
     expect(db.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining("nba2k_roster_players_source_key")
+      expect.stringContaining("ADD COLUMN IF NOT EXISTS nba_player_id bigint")
     );
     expect(db.query).toHaveBeenNthCalledWith(
       3,
+      expect.stringContaining("nba2k_roster_players_source_key")
+    );
+    expect(db.query).toHaveBeenNthCalledWith(
+      4,
       expect.stringContaining("nba2k_roster_players_team_rating_idx")
     );
   });
@@ -170,7 +177,8 @@ describe("NBA 2K roster persistence", () => {
           position: "PG",
           rating: 93,
           team_id: "nyk",
-          team_name: "New York Knicks"
+          team_name: "New York Knicks",
+          nba_player_id: 1628973
         },
         {
           source_player_id: 1,
@@ -178,7 +186,8 @@ describe("NBA 2K roster persistence", () => {
           position: "C",
           rating: 92,
           team_id: "phi",
-          team_name: "Philadelphia 76ers"
+          team_name: "Philadelphia 76ers",
+          nba_player_id: null
         }
       ]
     ]);
@@ -191,6 +200,7 @@ describe("NBA 2K roster persistence", () => {
     expect(players.slice(0, 2)).toEqual([
       {
         sourcePlayerId: 2,
+        nbaPlayerId: 1628973,
         fullName: "Jalen Brunson",
         position: "PG",
         rating: 93,
@@ -199,6 +209,7 @@ describe("NBA 2K roster persistence", () => {
       },
       {
         sourcePlayerId: 1,
+        nbaPlayerId: null,
         fullName: "Joel Embiid",
         position: "C",
         rating: 92,
@@ -206,6 +217,51 @@ describe("NBA 2K roster persistence", () => {
         teamName: "Philadelphia 76ers"
       }
     ]);
+  });
+
+  it("loads roster identities for NBA id matching", async () => {
+    const db = createDbClient([
+      [
+        {
+          source_player_id: 400,
+          full_name: "Victor Wembanyama",
+          nba_player_id: null
+        }
+      ]
+    ]);
+
+    await expect(loadRosterPlayerIdentities(db)).resolves.toEqual([
+      {
+        sourcePlayerId: 400,
+        fullName: "Victor Wembanyama",
+        nbaPlayerId: null
+      }
+    ]);
+  });
+
+  it("loads one roster player's NBA media id", async () => {
+    const db = createDbClient([[{ nba_player_id: 1641705 }]]);
+
+    await expect(loadRosterPlayerMedia(db, 400)).resolves.toEqual({
+      nbaPlayerId: 1641705
+    });
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("source_player_id = $1"),
+      [400]
+    );
+  });
+
+  it("updates only matched NBA ids and preserves unmatched rows", async () => {
+    const db = createDbClient([[{ updated_players: 1 }]]);
+    const matches = [{ sourcePlayerId: 400, nbaPlayerId: 1641705 }];
+
+    await expect(updateRosterNbaPlayerIds(db, matches)).resolves.toEqual({
+      updatedPlayers: 1
+    });
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("SET nba_player_id = input.nba_player_id"),
+      [JSON.stringify(matches)]
+    );
   });
 
   it("adds the 2026 draft class to roster players and avoids duplicate names", async () => {
@@ -217,7 +273,8 @@ describe("NBA 2K roster persistence", () => {
           position: "C",
           rating: 98,
           team_id: "den",
-          team_name: "Denver Nuggets"
+          team_name: "Denver Nuggets",
+          nba_player_id: null
         },
         {
           source_player_id: 2,
@@ -225,7 +282,8 @@ describe("NBA 2K roster persistence", () => {
           position: "SF",
           rating: 83,
           team_id: "was",
-          team_name: "Washington Wizards"
+          team_name: "Washington Wizards",
+          nba_player_id: null
         }
       ]
     ]);
@@ -237,6 +295,7 @@ describe("NBA 2K roster persistence", () => {
 
     expect(players[0]).toEqual({
       sourcePlayerId: 1,
+      nbaPlayerId: null,
       fullName: "Nikola Jokic",
       position: "C",
       rating: 98,
@@ -246,6 +305,7 @@ describe("NBA 2K roster persistence", () => {
     expect(players.filter((player) => player.fullName === "AJ Dybantsa")).toEqual([
       {
         sourcePlayerId: 2,
+        nbaPlayerId: null,
         fullName: "AJ Dybantsa",
         position: "SF",
         rating: 83,

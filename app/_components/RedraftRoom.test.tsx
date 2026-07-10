@@ -1,12 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   canCurrentUserEditRedraftPick,
   canCurrentUserSelectRedraftPick,
   clearCurrentUserRedraftPicks,
   getVisiblePlayerOptions,
+  notifyRedraftPickValidated,
   normalizeRedraftRounds,
   requestRedraftPickUpdate,
-  requestRedraftPicks
+  requestRedraftPicks,
+  requestRedraftRecap
 } from "./RedraftRoom";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import type { SnakeDraftPick } from "@/lib/redraft";
@@ -169,6 +171,45 @@ describe("clearCurrentUserRedraftPicks", () => {
   });
 });
 
+describe("notifyRedraftPickValidated", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts a validated redraft pick to the notification endpoint", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    );
+
+    await notifyRedraftPickValidated({
+      gmName: "Chris",
+      pickNumber: 7,
+      playerName: "Victor Wembanyama",
+      playerSourceId: 1,
+      round: 1,
+      roundPick: 7,
+      teamId: "sas",
+      teamName: "San Antonio Spurs"
+    });
+
+    expect(fetch).toHaveBeenCalledWith("/api/redraft-picks/notifications", {
+      body: JSON.stringify({
+        gmName: "Chris",
+        pickNumber: 7,
+        playerName: "Victor Wembanyama",
+        playerSourceId: 1,
+        round: 1,
+        roundPick: 7,
+        teamId: "sas",
+        teamName: "San Antonio Spurs"
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    });
+  });
+});
+
 describe("redraft picks API requests", () => {
   it("loads persisted picks from the redraft API", async () => {
     const fetchMock = vi.fn(async () =>
@@ -182,6 +223,35 @@ describe("redraft picks API requests", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/redraft-picks");
 
     vi.unstubAllGlobals();
+  });
+
+  it("requests an admin Discord recap", async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ pickCount: 7, messageCount: 1 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestRedraftRecap()).resolves.toEqual({
+      pickCount: 7,
+      messageCount: 1
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/redraft-picks/notifications/recap",
+      { method: "POST" }
+    );
+  });
+
+  it("surfaces recap API errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ error: "Acces admin requis." }, { status: 403 })
+      )
+    );
+
+    await expect(requestRedraftRecap()).rejects.toThrow(
+      "Acces admin requis."
+    );
   });
 
   it("persists a player selection through the redraft API", async () => {

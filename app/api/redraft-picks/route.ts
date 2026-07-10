@@ -30,6 +30,8 @@ import {
   loadRedraftPicks,
   upsertRedraftPick
 } from "@/lib/redraft-picks";
+import { dispatchAutomaticRoundRecaps } from "@/lib/automatic-round-recap";
+import { ensureRedraftRoundRecapSchema } from "@/lib/redraft-round-recaps";
 import {
   createSnakeDraftPicks,
   GM_DRAFT_SLOT_LINKS,
@@ -142,6 +144,13 @@ export async function PATCH(request: Request) {
       playerName: validation.playerName || null
     });
 
+    if (validation.playerName) {
+      await dispatchAutomaticRoundRecaps(db, state.draftPicks, {
+        ...state.picks,
+        [pick.pickNumber]: validation.playerName
+      });
+    }
+
     return picksResponse(db);
   } catch (error) {
     return routeErrorResponse(error);
@@ -177,6 +186,7 @@ async function prepareRedraftPickDb() {
   await seedGmDraftSlots(db);
   await ensureNba2kRosterSchema(db);
   await ensureRedraftPickSchema(db);
+  await ensureRedraftRoundRecapSchema(db);
   await ensureDraftEventSchema(db);
 
   return db;
