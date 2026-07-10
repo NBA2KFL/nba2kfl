@@ -52,6 +52,48 @@ describe("NBA 2K roster persistence", () => {
     });
   });
 
+  it("corrects known NBA2KLab player name misspellings", () => {
+    const corrections = [
+      ["Alperen", "Sengunun", "Alperen", "Şengün"],
+      ["Daniel", "Gaffford", "Daniel", "Gafford"],
+      ["Dario", "Whitehead", "Dariq", "Whitehead"],
+      ["David", "Jones-Garcia", "David", "Jones Garcia"],
+      ["Domantatas", "Sabonis", "Domantas", "Sabonis"],
+      ["Luke", "Garza", "Luka", "Garza"],
+      ["Stephon", "Curry", "Stephen", "Curry"],
+      ["Terence", "Mann", "Terance", "Mann"],
+      ["Tristen", "Da Silva", "Tristan", "da Silva"],
+      ["Tristen", "Vukcevic", "Tristan", "Vukčević"],
+      ["Zacchararie", "Risacher", "Zaccharie", "Risacher"],
+      ["lvica", "Zubacac", "Ivica", "Zubac"]
+    ] as const;
+
+    for (const [
+      firstName,
+      lastName,
+      expectedFirstName,
+      expectedLastName
+    ] of corrections) {
+      const player = normalizeNba2kRosterPlayer({
+        id: 999,
+        first_name: firstName,
+        last_name: lastName,
+        team: "Philadelphia 76ers",
+        rating: 80
+      });
+
+      expect({
+        firstName: player.firstName,
+        lastName: player.lastName,
+        fullName: player.fullName
+      }).toEqual({
+        firstName: expectedFirstName,
+        lastName: expectedLastName,
+        fullName: `${expectedFirstName} ${expectedLastName}`
+      });
+    }
+  });
+
   it("creates the NBA 2K roster table and lookup indexes", async () => {
     const db = createDbClient();
 
@@ -234,6 +276,51 @@ describe("NBA 2K roster persistence", () => {
         })
       ])
     );
+  });
+
+  it("uses the official NBA spellings for the 2026 draft class", async () => {
+    const players = await loadNba2kRosterPlayers(createDbClient([[]]));
+    const playerNames = players.map((player) => player.fullName);
+
+    expect(playerNames).toEqual(
+      expect.arrayContaining([
+        "Christian Anderson",
+        "Karim López",
+        "Sergio De Larrea"
+      ])
+    );
+    expect(playerNames).not.toEqual(
+      expect.arrayContaining([
+        "Christian Anderson Jr.",
+        "Karim Lopez",
+        "Sergio de Larrea"
+      ])
+    );
+  });
+
+  it("avoids duplicate draft players when the roster omits accents", async () => {
+    const db = createDbClient([
+      [
+        {
+          source_player_id: 21,
+          full_name: "Karim Lopez",
+          position: "SF",
+          rating: 74,
+          team_id: "mem",
+          team_name: "Memphis Grizzlies"
+        }
+      ]
+    ]);
+
+    const players = await loadNba2kRosterPlayers(db);
+    const matchingPlayers = players.filter(
+      (player) =>
+        player.fullName === "Karim Lopez" || player.fullName === "Karim López"
+    );
+
+    expect(matchingPlayers).toEqual([
+      expect.objectContaining({ sourcePlayerId: 21, fullName: "Karim Lopez" })
+    ]);
   });
 
   it("accepts only array payloads from the roster source", () => {
