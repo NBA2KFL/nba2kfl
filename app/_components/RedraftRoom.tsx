@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition
+} from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +48,11 @@ type RedraftPicksApiResponse = {
   picks?: RedraftPicksByNumber;
   error?: string;
 };
+type RedraftRecapApiResponse = {
+  pickCount?: number;
+  messageCount?: number;
+  error?: string;
+};
 type RedraftPlayerOption = {
   label: string;
   value: string;
@@ -79,6 +90,11 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     null
   );
   const [playerLoadError, setPlayerLoadError] = useState<string | null>(null);
+  const [isSendingRecap, startRecapTransition] = useTransition();
+  const [recapStatus, setRecapStatus] = useState<{
+    kind: "error" | "success";
+    message: string;
+  } | null>(null);
 
   const refreshRedraftState = useCallback(async () => {
     const [selectionResult, picksResult] = await Promise.allSettled([
@@ -258,6 +274,25 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     }
   }
 
+  function sendRedraftRecap() {
+    setRecapStatus(null);
+    startRecapTransition(async () => {
+      try {
+        const result = await requestRedraftRecap();
+
+        setRecapStatus({
+          kind: "success",
+          message: `Récap Discord envoyé · ${result.pickCount} picks`
+        });
+      } catch (error) {
+        setRecapStatus({
+          kind: "error",
+          message: toErrorMessage(error)
+        });
+      }
+    });
+  }
+
   return (
     <section
       aria-labelledby="redraft-title"
@@ -287,9 +322,32 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
           <Button onClick={clearPicks} variant="secondary">
             {isAdmin ? "Vider tous les picks" : "Vider mes picks"}
           </Button>
+          {isAdmin ? (
+            <Button
+              disabled={isSendingRecap}
+              onClick={sendRedraftRecap}
+              variant="secondary"
+            >
+              {isSendingRecap ? "Envoi du récap…" : "Envoyer le récap Discord"}
+            </Button>
+          ) : null}
           <Button asChild>
             <Link href="/draft/franchises">Franchises</Link>
           </Button>
+          {recapStatus ? (
+            <p
+              aria-live="polite"
+              className={cn(
+                "col-span-full m-0 text-[0.78rem] font-[650] leading-[1.4]",
+                recapStatus.kind === "error"
+                  ? "text-command-red-text"
+                  : "text-command-muted-strong"
+              )}
+              role={recapStatus.kind === "error" ? "alert" : "status"}
+            >
+              {recapStatus.message}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -777,6 +835,33 @@ export async function requestRedraftPickUpdate(
     .catch(() => ({}))) as RedraftPicksApiResponse;
 
   return parseRedraftPicksResponse(response, payload);
+}
+
+export async function requestRedraftRecap() {
+  const response = await fetch("/api/redraft-picks/notifications/recap", {
+    method: "POST"
+  });
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as RedraftRecapApiResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      payload.error ?? "Impossible d'envoyer le récap Discord."
+    );
+  }
+
+  if (
+    typeof payload.pickCount !== "number" ||
+    typeof payload.messageCount !== "number"
+  ) {
+    throw new Error("Réponse récap Discord invalide.");
+  }
+
+  return {
+    pickCount: payload.pickCount,
+    messageCount: payload.messageCount
+  };
 }
 
 async function requestClearRedraftPicks() {
