@@ -12,7 +12,11 @@ const notification = {
   playerName: "Victor Wembanyama",
   round: 1,
   roundPick: 7,
-  teamName: "San Antonio Spurs"
+  teamName: "San Antonio Spurs",
+  teamLogoUrl:
+    "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
+  playerPortraitUrl:
+    "https://cdn.nba.com/headshots/nba/latest/1040x760/1641705.png"
 };
 
 describe("redraft Discord webhook", () => {
@@ -32,10 +36,18 @@ describe("redraft Discord webhook", () => {
       allowed_mentions: { parse: [] },
       embeds: [
         {
+          author: {
+            name: "San Antonio Spurs",
+            icon_url:
+              "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg"
+          },
           color: 0xf5b335,
           description:
-            "**Chris** · San Antonio Spurs\n➡️ **Victor Wembanyama**",
+            "**Chris** sélectionne\n➡️ **Victor Wembanyama**",
           footer: { text: "NBA2KFL · Pick #7" },
+          thumbnail: {
+            url: "https://cdn.nba.com/headshots/nba/latest/1040x760/1641705.png"
+          },
           timestamp: "2026-07-10T10:00:00.000Z",
           title: "🏀 PICK VALIDÉ · T1.7"
         }
@@ -43,87 +55,48 @@ describe("redraft Discord webhook", () => {
     });
   });
 
-  it("groups recap picks by round in a styled embed", () => {
-    const payloads = createRedraftRecapDiscordPayloads(
-      [
-        {
-          pickNumber: 1,
-          round: 1,
-          roundPick: 1,
-          gmName: "Anna",
-          teamName: "Houston Rockets",
-          playerName: "Nikola Jokic"
-        },
-        {
-          pickNumber: 2,
-          round: 1,
-          roundPick: 2,
-          gmName: "Elias",
-          teamName: "Indiana Pacers",
-          playerName: "Shai Gilgeous-Alexander"
-        },
-        {
-          pickNumber: 31,
-          round: 2,
-          roundPick: 1,
-          gmName: "Khaladan",
-          teamName: "Cleveland Cavaliers",
-          playerName: "Victor Wembanyama"
-        }
-      ],
-      "2026-07-10T10:00:00.000Z"
-    );
-
-    expect(payloads).toHaveLength(1);
-    expect(payloads[0]).toEqual({
-      allowed_mentions: { parse: [] },
-      embeds: [
-        {
-          color: 0xf5b335,
-          description: [
-            "**TOUR 1**",
-            "`#1` · **Anna** · Houston Rockets → **Nikola Jokic**",
-            "`#2` · **Elias** · Indiana Pacers → **Shai Gilgeous-Alexander**",
-            "",
-            "**TOUR 2**",
-            "`#31` · **Khaladan** · Cleveland Cavaliers → **Victor Wembanyama**"
-          ].join("\n"),
-          footer: { text: "3 picks validés · NBA2KFL" },
-          timestamp: "2026-07-10T10:00:00.000Z",
-          title: "🏀 RÉCAP REDRAFT NBA2KFL"
-        }
-      ]
-    });
-  });
-
-  it("chunks long recaps below Discord embed limits without losing picks", () => {
-    const items = Array.from({ length: 90 }, (_, index) => ({
+  it("renders compact recap cards in batches of at most ten embeds", () => {
+    const items = Array.from({ length: 17 }, (_, index) => ({
       pickNumber: index + 1,
       round: Math.floor(index / 30) + 1,
       roundPick: (index % 30) + 1,
-      gmName: `GM ${index + 1} ${"A".repeat(20)}`,
-      teamName: `Franchise ${index + 1} ${"B".repeat(25)}`,
-      playerName: `Joueur ${index + 1} ${"C".repeat(30)}`
+      gmName: `GM ${index + 1}`,
+      teamName: `Franchise ${index + 1}`,
+      playerName: `Joueur ${index + 1}`,
+      teamLogoUrl: `https://cdn.example/team-${index + 1}.svg`,
+      playerPortraitUrl: `https://cdn.example/player-${index + 1}.png`
     }));
 
-    const payloads = createRedraftRecapDiscordPayloads(items);
-    const descriptions = payloads.map((payload) => payload.embeds[0].description);
-    const combinedDescription = descriptions.join("\n");
+    const payloads = createRedraftRecapDiscordPayloads(
+      items,
+      "2026-07-10T10:00:00.000Z"
+    );
 
-    expect(payloads.length).toBeGreaterThan(1);
-    for (const payload of payloads) {
-      const embed = payload.embeds[0];
-      const embedTextLength =
-        embed.title.length +
-        embed.description.length +
-        embed.footer.text.length;
+    expect(payloads).toHaveLength(2);
+    expect(payloads.map((payload) => payload.embeds.length)).toEqual([10, 7]);
+    expect(payloads[0].allowed_mentions).toEqual({ parse: [] });
+    expect(payloads[0].embeds[0]).toEqual(
+      expect.objectContaining({
+        title: "🏀 PICK VALIDÉ · T1.1",
+        author: {
+          name: "Franchise 1",
+          icon_url: "https://cdn.example/team-1.svg"
+        },
+        thumbnail: { url: "https://cdn.example/player-1.png" }
+      })
+    );
+    expect(payloads[1].embeds[6].title).toBe("🏀 PICK VALIDÉ · T1.17");
+  });
 
-      expect(embedTextLength).toBeLessThan(6000);
-    }
-    for (const item of items) {
-      expect(combinedDescription.match(new RegExp(`\\#${item.pickNumber}\\b`, "g")))
-        .toHaveLength(1);
-    }
+  it("omits unavailable image fields", () => {
+    const payload = createRedraftPickDiscordPayload({
+      ...notification,
+      teamLogoUrl: null,
+      playerPortraitUrl: null
+    });
+
+    expect(payload.embeds[0]).not.toHaveProperty("thumbnail");
+    expect(payload.embeds[0].author).toEqual({ name: "San Antonio Spurs" });
   });
 
   it("posts the notification to Discord without allowed mentions", async () => {

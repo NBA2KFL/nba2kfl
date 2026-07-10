@@ -5,6 +5,8 @@ export type RedraftPickDiscordNotification = {
   round: number;
   roundPick: number;
   teamName: string | null;
+  teamLogoUrl: string | null;
+  playerPortraitUrl: string | null;
 };
 export type RedraftRecapItem = {
   pickNumber: number;
@@ -13,6 +15,8 @@ export type RedraftRecapItem = {
   gmName: string;
   teamName: string;
   playerName: string;
+  teamLogoUrl: string | null;
+  playerPortraitUrl: string | null;
 };
 export type DiscordWebhookPayload = {
   allowed_mentions: { parse: string[] };
@@ -20,18 +24,22 @@ export type DiscordWebhookPayload = {
 };
 
 type DiscordEmbed = {
+  author?: {
+    name: string;
+    icon_url?: string;
+  };
   color: number;
   title: string;
   description: string;
   footer: { text: string };
+  thumbnail?: { url: string };
   timestamp: string;
 };
 
 type WebhookFetch = (input: string, init: RequestInit) => Promise<Response>;
 
 const NBA2KFL_GOLD = 0xf5b335;
-const DISCORD_EMBED_TEXT_LIMIT = 5800;
-const REDRAFT_RECAP_TITLE = "🏀 RÉCAP REDRAFT NBA2KFL";
+const DISCORD_EMBEDS_PER_MESSAGE = 10;
 
 export function formatRedraftPickDiscordContent({
   gmName,
@@ -53,19 +61,9 @@ export function createRedraftPickDiscordPayload(
   notification: RedraftPickDiscordNotification,
   timestamp = new Date().toISOString()
 ): DiscordWebhookPayload {
-  const teamLabel = notification.teamName ? ` · ${notification.teamName}` : "";
-
   return {
     allowed_mentions: { parse: [] },
-    embeds: [
-      {
-        color: NBA2KFL_GOLD,
-        description: `**${notification.gmName}**${teamLabel}\n➡️ **${notification.playerName}**`,
-        footer: { text: `NBA2KFL · Pick #${notification.pickNumber}` },
-        timestamp,
-        title: `🏀 PICK VALIDÉ · T${notification.round}.${notification.roundPick}`
-      }
-    ]
+    embeds: [createPickEmbed(notification, timestamp)]
   };
 }
 
@@ -77,53 +75,49 @@ export function createRedraftRecapDiscordPayloads(
     return [];
   }
 
-  const footerText = `${items.length} picks validés · NBA2KFL`;
-  const descriptions: string[] = [];
-  let lines: string[] = [];
-  let currentRound: number | null = null;
+  const sortedItems = items.toSorted(
+    (first, second) => first.pickNumber - second.pickNumber
+  );
+  const payloads: DiscordWebhookPayload[] = [];
 
-  for (const item of items.toSorted((first, second) => first.pickNumber - second.pickNumber)) {
-    const isNewRound = item.round !== currentRound;
-    const headingLines = isNewRound
-      ? [...(lines.length > 0 ? [""] : []), `**TOUR ${item.round}**`]
-      : [];
-    const pickLine = `\`#${item.pickNumber}\` · **${item.gmName}** · ${item.teamName} → **${item.playerName}**`;
-    const candidateLines = [...lines, ...headingLines, pickLine];
-
-    if (
-      lines.length > 0 &&
-      getEmbedTextLength(candidateLines.join("\n"), footerText) >
-        DISCORD_EMBED_TEXT_LIMIT
-    ) {
-      descriptions.push(lines.join("\n"));
-      lines = [`**TOUR ${item.round}**`, pickLine];
-    } else {
-      lines = candidateLines;
-    }
-
-    currentRound = item.round;
+  for (
+    let index = 0;
+    index < sortedItems.length;
+    index += DISCORD_EMBEDS_PER_MESSAGE
+  ) {
+    payloads.push({
+      allowed_mentions: { parse: [] },
+      embeds: sortedItems
+        .slice(index, index + DISCORD_EMBEDS_PER_MESSAGE)
+        .map((item) => createPickEmbed(item, timestamp))
+    });
   }
 
-  if (lines.length > 0) {
-    descriptions.push(lines.join("\n"));
-  }
-
-  return descriptions.map((description) => ({
-    allowed_mentions: { parse: [] },
-    embeds: [
-      {
-        color: NBA2KFL_GOLD,
-        description,
-        footer: { text: footerText },
-        timestamp,
-        title: REDRAFT_RECAP_TITLE
-      }
-    ]
-  }));
+  return payloads;
 }
 
-function getEmbedTextLength(description: string, footerText: string) {
-  return REDRAFT_RECAP_TITLE.length + description.length + footerText.length;
+function createPickEmbed(
+  pick: RedraftPickDiscordNotification | RedraftRecapItem,
+  timestamp: string
+): DiscordEmbed {
+  const author = pick.teamName
+    ? {
+        name: pick.teamName,
+        ...(pick.teamLogoUrl ? { icon_url: pick.teamLogoUrl } : {})
+      }
+    : undefined;
+
+  return {
+    ...(author ? { author } : {}),
+    color: NBA2KFL_GOLD,
+    description: `**${pick.gmName}** sélectionne\n➡️ **${pick.playerName}**`,
+    footer: { text: `NBA2KFL · Pick #${pick.pickNumber}` },
+    ...(pick.playerPortraitUrl
+      ? { thumbnail: { url: pick.playerPortraitUrl } }
+      : {}),
+    timestamp,
+    title: `🏀 PICK VALIDÉ · T${pick.round}.${pick.roundPick}`
+  };
 }
 
 export async function sendRedraftPickDiscordNotification(
