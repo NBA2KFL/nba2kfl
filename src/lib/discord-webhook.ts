@@ -18,6 +18,11 @@ export type RedraftRecapItem = {
   teamLogoUrl: string | null;
   playerPortraitUrl: string | null;
 };
+export type RedraftRoundRecapItem = {
+  pickNumber: number;
+  gmName: string;
+  playerName: string;
+};
 export type DiscordWebhookPayload = {
   allowed_mentions: { parse: string[] };
   embeds: DiscordEmbed[];
@@ -40,6 +45,45 @@ type WebhookFetch = (input: string, init: RequestInit) => Promise<Response>;
 
 const NBA2KFL_GOLD = 0xf5b335;
 const DISCORD_EMBEDS_PER_MESSAGE = 10;
+const DISCORD_CONTENT_LIMIT = 2000;
+
+export function formatRedraftRoundRecapContent(
+  round: number,
+  items: readonly RedraftRoundRecapItem[]
+): string[] {
+  if (items.length === 0) return [];
+  const lines = [`🏁 TOUR ${round} TERMINÉ`, "", ...items
+    .toSorted((a, b) => a.pickNumber - b.pickNumber)
+    .map((item) => `#${item.pickNumber} · ${item.gmName} · ${item.playerName}`)];
+  const chunks: string[] = [];
+  let current = "";
+  for (const line of lines) {
+    const next = current ? `${current}\n${line}` : line;
+    if (next.length > DISCORD_CONTENT_LIMIT && current) {
+      chunks.push(current);
+      current = line;
+    } else {
+      current = next;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+export async function sendRedraftRoundRecap(
+  webhookUrl: string,
+  content: readonly string[],
+  fetcher: WebhookFetch = fetch
+) {
+  for (const message of content) {
+    const response = await fetcher(webhookUrl, {
+      body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    });
+    if (!response.ok) throw new Error("Discord webhook notification failed.");
+  }
+}
 
 export function formatRedraftPickDiscordContent({
   gmName,

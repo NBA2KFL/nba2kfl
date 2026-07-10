@@ -22,6 +22,10 @@ import {
 } from "@/lib/redraft-picks";
 import { DELETE, GET, PATCH } from "./route";
 
+vi.mock("@/lib/redraft-round-recaps", () => ({
+  ensureRedraftRoundRecapSchema: vi.fn()
+}));
+
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => new Headers())
 }));

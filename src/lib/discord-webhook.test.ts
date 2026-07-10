@@ -3,7 +3,9 @@ import {
   createRedraftPickDiscordPayload,
   createRedraftRecapDiscordPayloads,
   formatRedraftPickDiscordContent,
-  sendRedraftPickDiscordNotification
+  sendRedraftPickDiscordNotification,
+  formatRedraftRoundRecapContent,
+  sendRedraftRoundRecap
 } from "./discord-webhook";
 
 const notification = {
@@ -20,6 +22,22 @@ const notification = {
 };
 
 describe("redraft Discord webhook", () => {
+  it("formats a plain recap for one completed round", () => {
+    expect(formatRedraftRoundRecapContent(1, [
+      { pickNumber: 2, gmName: "Elias", playerName: "Shai" },
+      { pickNumber: 1, gmName: "Anna", playerName: "Victor" }
+    ])).toEqual(["🏁 TOUR 1 TERMINÉ\n\n#1 · Anna · Victor\n#2 · Elias · Shai"]);
+  });
+
+  it("sends plain recap content without embeds", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await sendRedraftRoundRecap("https://discord.example/webhook", ["🏁 TOUR 1 TERMINÉ"], fetcher);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1].body))).toEqual({
+      content: "🏁 TOUR 1 TERMINÉ",
+      allowed_mentions: { parse: [] }
+    });
+  });
+
   it("formats a redraft pick validation message", () => {
     expect(formatRedraftPickDiscordContent(notification)).toBe(
       "Pick redraft valide #7 (T1.7)\nChris (San Antonio Spurs) selectionne Victor Wembanyama."
