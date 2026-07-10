@@ -1,8 +1,34 @@
-export function getNbaTeamLogoUrl(nbaTeamId: number) {
+export function getNbaTeamLogoUrl(
+  nbaTeamId: number,
+  applicationUrl?: string
+) {
+  const publicOrigin = getPublicOrigin(applicationUrl);
+
+  if (publicOrigin) {
+    return `${publicOrigin}/api/discord-media/team/${positiveId(nbaTeamId)}`;
+  }
+
+  return getNbaTeamLogoSourceUrl(nbaTeamId);
+}
+
+export function getNbaTeamLogoSourceUrl(nbaTeamId: number) {
   return `https://cdn.nba.com/logos/nba/${positiveId(nbaTeamId)}/primary/L/logo.svg`;
 }
 
-export function getNbaPlayerHeadshotUrl(nbaPlayerId: number) {
+export function getNbaPlayerHeadshotUrl(
+  nbaPlayerId: number,
+  applicationUrl?: string
+) {
+  const publicOrigin = getPublicOrigin(applicationUrl);
+
+  if (publicOrigin) {
+    return `${publicOrigin}/api/discord-media/player/${positiveId(nbaPlayerId)}`;
+  }
+
+  return getNbaPlayerHeadshotSourceUrl(nbaPlayerId);
+}
+
+export function getNbaPlayerHeadshotSourceUrl(nbaPlayerId: number) {
   return `https://cdn.nba.com/headshots/nba/latest/1040x760/${positiveId(nbaPlayerId)}.png`;
 }
 
@@ -11,7 +37,7 @@ export function getPlayerPortraitUrl(
   applicationUrl: string | undefined
 ) {
   if (nbaPlayerId !== null) {
-    return getNbaPlayerHeadshotUrl(nbaPlayerId);
+    return getNbaPlayerHeadshotUrl(nbaPlayerId, applicationUrl);
   }
 
   if (!applicationUrl) {
@@ -26,6 +52,20 @@ export function getPlayerPortraitUrl(
     }
 
     return new URL("/images/player-silhouette.svg", url).toString();
+  } catch {
+    return null;
+  }
+}
+
+function getPublicOrigin(applicationUrl: string | undefined) {
+  if (!applicationUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(applicationUrl);
+
+    return url.protocol === "https:" ? url.origin : null;
   } catch {
     return null;
   }

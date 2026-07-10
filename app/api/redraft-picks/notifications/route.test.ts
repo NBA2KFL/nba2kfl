@@ -70,10 +70,10 @@ describe("redraft pick notification API", () => {
       expect.objectContaining({
         author: expect.objectContaining({
           icon_url:
-            "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg"
+            "https://draft.nba2kfl.fr/api/discord-media/team/1610612759"
         }),
         thumbnail: {
-          url: "https://cdn.nba.com/headshots/nba/latest/1040x760/1641705.png"
+          url: "https://draft.nba2kfl.fr/api/discord-media/player/1641705"
         }
       })
     );

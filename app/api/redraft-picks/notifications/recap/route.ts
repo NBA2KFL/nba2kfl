@@ -89,7 +89,9 @@ export async function POST() {
         teamName:
           team?.name ?? `Franchise ${row.franchiseTeamId.toUpperCase()}`,
         playerName: row.playerName,
-        teamLogoUrl: team ? getNbaTeamLogoUrl(team.nbaTeamId) : null,
+        teamLogoUrl: team
+          ? getNbaTeamLogoUrl(team.nbaTeamId, process.env.BETTER_AUTH_URL)
+          : null,
         playerPortraitUrl: getPlayerPortraitUrl(
           row.nbaPlayerId,
           process.env.BETTER_AUTH_URL

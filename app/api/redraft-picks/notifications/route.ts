@@ -63,7 +63,9 @@ export async function POST(request: Request) {
       round: notification.round,
       roundPick: notification.roundPick,
       teamName: team?.name ?? notification.teamName,
-      teamLogoUrl: team ? getNbaTeamLogoUrl(team.nbaTeamId) : null,
+      teamLogoUrl: team
+        ? getNbaTeamLogoUrl(team.nbaTeamId, process.env.BETTER_AUTH_URL)
+        : null,
       playerPortraitUrl: getPlayerPortraitUrl(
         playerMedia?.nbaPlayerId ?? null,
         process.env.BETTER_AUTH_URL
