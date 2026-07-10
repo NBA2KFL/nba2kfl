@@ -75,6 +75,9 @@ type RosterPlayerIdentityRow = {
 type UpdatedNbaPlayerRows = {
   updated_players: number | string;
 };
+type RosterPlayerMediaRow = {
+  nba_player_id: number | string | null;
+};
 
 export type RosterPlayerIdentity = {
   sourcePlayerId: number;
@@ -222,6 +225,33 @@ export async function loadRosterPlayerIdentities(
         ? null
         : Number(row.nba_player_id)
   }));
+}
+
+export async function loadRosterPlayerMedia(
+  db: DraftDbClient,
+  sourcePlayerId: number
+) {
+  const rows = await db.query<RosterPlayerMediaRow>(
+    `
+      SELECT nba_player_id
+      FROM nba2k_roster_players
+      WHERE game_version = '${GAME_VERSION}'
+        AND source = '${SOURCE}'
+        AND source_player_id = $1
+      LIMIT 1
+    `,
+    [sourcePlayerId]
+  );
+  const row = rows[0];
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    nbaPlayerId:
+      row.nba_player_id === null ? null : Number(row.nba_player_id)
+  };
 }
 
 export async function updateRosterNbaPlayerIds(

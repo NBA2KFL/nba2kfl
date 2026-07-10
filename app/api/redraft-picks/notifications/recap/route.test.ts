@@ -32,6 +32,7 @@ vi.mock("@/lib/discord-webhook", async (importOriginal) => {
 
 const originalAdminEmails = process.env.ADMIN_EMAILS;
 const originalWebhookUrl = process.env.DISCORD_DRAFT_WEBHOOK_URL;
+const originalApplicationUrl = process.env.BETTER_AUTH_URL;
 const db = { query: vi.fn() };
 const recapRows = [
   {
@@ -41,6 +42,7 @@ const recapRows = [
     slot: 7,
     franchiseTeamId: "sas",
     playerName: "Victor Wembanyama",
+    nbaPlayerId: 1641705,
     validatedAt: "2026-07-10T10:00:00.000Z"
   }
 ];
@@ -50,6 +52,7 @@ describe("redraft Discord recap API", () => {
     vi.clearAllMocks();
     process.env.ADMIN_EMAILS = "admin@nba2kfl.local";
     process.env.DISCORD_DRAFT_WEBHOOK_URL = "https://discord.example/webhook";
+    process.env.BETTER_AUTH_URL = "https://draft.nba2kfl.fr";
     vi.mocked(auth.api.getSession).mockResolvedValue({
       user: { email: "admin@nba2kfl.local" }
     });
@@ -60,6 +63,7 @@ describe("redraft Discord recap API", () => {
   afterEach(() => {
     process.env.ADMIN_EMAILS = originalAdminEmails;
     process.env.DISCORD_DRAFT_WEBHOOK_URL = originalWebhookUrl;
+    process.env.BETTER_AUTH_URL = originalApplicationUrl;
   });
 
   it("sends all persisted picks for an admin", async () => {
@@ -76,9 +80,13 @@ describe("redraft Discord recap API", () => {
         expect.objectContaining({
           embeds: [
             expect.objectContaining({
-              description: expect.stringContaining(
-                "**Chris** · San Antonio Spurs → **Victor Wembanyama**"
-              )
+              author: expect.objectContaining({
+                icon_url:
+                  "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg"
+              }),
+              thumbnail: {
+                url: "https://cdn.nba.com/headshots/nba/latest/1040x760/1641705.png"
+              }
             })
           ]
         })
@@ -97,6 +105,29 @@ describe("redraft Discord recap API", () => {
     });
     expect(loadRedraftPickRecap).not.toHaveBeenCalled();
     expect(sendDiscordWebhookPayloads).not.toHaveBeenCalled();
+  });
+
+  it("uses the public fallback portrait for unmatched roster players", async () => {
+    vi.mocked(loadRedraftPickRecap).mockResolvedValue([
+      { ...recapRows[0], nbaPlayerId: null }
+    ]);
+
+    await POST();
+
+    expect(sendDiscordWebhookPayloads).toHaveBeenCalledWith(
+      "https://discord.example/webhook",
+      [
+        expect.objectContaining({
+          embeds: [
+            expect.objectContaining({
+              thumbnail: {
+                url: "https://draft.nba2kfl.fr/images/player-silhouette.svg"
+              }
+            })
+          ]
+        })
+      ]
+    );
   });
 
   it("rejects non-admin requests before loading picks", async () => {

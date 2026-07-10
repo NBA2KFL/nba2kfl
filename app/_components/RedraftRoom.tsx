@@ -61,9 +61,11 @@ type RedraftPickNotificationPayload = {
   gmName: string;
   pickNumber: number;
   playerName: string;
+  playerSourceId: number;
   round: number;
   roundPick: number;
   teamName: string | null;
+  teamId: string;
 };
 type RedraftRoomProps = {
   currentUserEmail: string | null;
@@ -248,17 +250,24 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
 
       if (validation.playerName) {
         const team = findTeam(pick.selection.teamId);
+        const player = rosterPlayers.find(
+          (candidate) => candidate.fullName === validation.playerName
+        );
 
-        void notifyRedraftPickValidated({
-          gmName: pick.selection.gmName,
-          pickNumber: pick.pickNumber,
-          playerName: validation.playerName,
-          round: pick.round,
-          roundPick: pick.roundPick,
-          teamName: team?.name ?? null
-        }).catch((error) => {
-          console.error("Redraft Discord notification failed", error);
-        });
+        if (player) {
+          void notifyRedraftPickValidated({
+            gmName: pick.selection.gmName,
+            pickNumber: pick.pickNumber,
+            playerName: validation.playerName,
+            playerSourceId: player.sourcePlayerId,
+            round: pick.round,
+            roundPick: pick.roundPick,
+            teamId: pick.selection.teamId,
+            teamName: team?.name ?? null
+          }).catch((error) => {
+            console.error("Redraft Discord notification failed", error);
+          });
+        }
       }
     } catch (error) {
       setPickValidationError(toErrorMessage(error));

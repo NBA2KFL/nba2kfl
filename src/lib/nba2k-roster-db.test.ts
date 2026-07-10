@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DraftDbClient } from "./draft-db";
 import {
   ensureNba2kRosterSchema,
+  loadRosterPlayerMedia,
   loadRosterPlayerIdentities,
   loadNba2kRosterPlayers,
   normalizeNba2kRosterPlayer,
@@ -236,6 +237,18 @@ describe("NBA 2K roster persistence", () => {
         nbaPlayerId: null
       }
     ]);
+  });
+
+  it("loads one roster player's NBA media id", async () => {
+    const db = createDbClient([[{ nba_player_id: 1641705 }]]);
+
+    await expect(loadRosterPlayerMedia(db, 400)).resolves.toEqual({
+      nbaPlayerId: 1641705
+    });
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("source_player_id = $1"),
+      [400]
+    );
   });
 
   it("updates only matched NBA ids and preserves unmatched rows", async () => {

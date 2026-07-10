@@ -186,8 +186,10 @@ describe("notifyRedraftPickValidated", () => {
       gmName: "Chris",
       pickNumber: 7,
       playerName: "Victor Wembanyama",
+      playerSourceId: 1,
       round: 1,
       roundPick: 7,
+      teamId: "sas",
       teamName: "San Antonio Spurs"
     });
 
@@ -196,8 +198,10 @@ describe("notifyRedraftPickValidated", () => {
         gmName: "Chris",
         pickNumber: 7,
         playerName: "Victor Wembanyama",
+        playerSourceId: 1,
         round: 1,
         roundPick: 7,
+        teamId: "sas",
         teamName: "San Antonio Spurs"
       }),
       headers: { "content-type": "application/json" },

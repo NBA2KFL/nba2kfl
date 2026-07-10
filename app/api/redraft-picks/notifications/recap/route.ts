@@ -8,6 +8,10 @@ import {
 import { auth } from "@/lib/auth";
 import { getDraftDbClient } from "@/lib/draft-db";
 import {
+  getNbaTeamLogoUrl,
+  getPlayerPortraitUrl
+} from "@/lib/nba-media";
+import {
   createRedraftRecapDiscordPayloads,
   sendDiscordWebhookPayloads
 } from "@/lib/discord-webhook";
@@ -19,8 +23,8 @@ export const dynamic = "force-dynamic";
 const GM_NAMES_BY_SLOT = new Map(
   GM_DRAFT_SLOT_LINKS.map((link) => [link.slot, link.gmName])
 );
-const TEAM_NAMES_BY_ID = new Map(
-  NBA_TEAMS.map((team) => [team.id, team.name])
+const TEAMS_BY_ID = new Map(
+  NBA_TEAMS.map((team) => [team.id, team])
 );
 
 export async function POST() {
@@ -74,16 +78,24 @@ export async function POST() {
   }
 
   const payloads = createRedraftRecapDiscordPayloads(
-    rows.map((row) => ({
-      pickNumber: row.pickNumber,
-      round: row.round,
-      roundPick: row.roundPick,
-      gmName: GM_NAMES_BY_SLOT.get(row.slot) ?? `GM #${row.slot}`,
-      teamName:
-        TEAM_NAMES_BY_ID.get(row.franchiseTeamId) ??
-        `Franchise ${row.franchiseTeamId.toUpperCase()}`,
-      playerName: row.playerName
-    }))
+    rows.map((row) => {
+      const team = TEAMS_BY_ID.get(row.franchiseTeamId);
+
+      return {
+        pickNumber: row.pickNumber,
+        round: row.round,
+        roundPick: row.roundPick,
+        gmName: GM_NAMES_BY_SLOT.get(row.slot) ?? `GM #${row.slot}`,
+        teamName:
+          team?.name ?? `Franchise ${row.franchiseTeamId.toUpperCase()}`,
+        playerName: row.playerName,
+        teamLogoUrl: team ? getNbaTeamLogoUrl(team.nbaTeamId) : null,
+        playerPortraitUrl: getPlayerPortraitUrl(
+          row.nbaPlayerId,
+          process.env.BETTER_AUTH_URL
+        )
+      };
+    })
   );
 
   try {

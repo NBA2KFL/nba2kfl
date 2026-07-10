@@ -71,6 +71,7 @@ describe("redraft picks persistence", () => {
           slot: 7,
           franchise_team_id: "sas",
           player_name: "Victor Wembanyama",
+          nba_player_id: 1641705,
           updated_at: validatedAt
         }
       ]
@@ -84,11 +85,15 @@ describe("redraft picks persistence", () => {
         slot: 7,
         franchiseTeamId: "sas",
         playerName: "Victor Wembanyama",
+        nbaPlayerId: 1641705,
         validatedAt
       }
     ]);
     expect(db.query).toHaveBeenCalledWith(
-      expect.stringContaining("ORDER BY pick_number")
+      expect.stringContaining("ORDER BY redraft.pick_number")
+    );
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("LEFT JOIN nba2k_roster_players")
     );
   });
 
