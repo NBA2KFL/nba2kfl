@@ -3,11 +3,11 @@ import {
   fetchNbaPlayerDirectory,
   indexNbaPlayerIdsByName,
   normalizeNbaPlayerName
-} from "./nba-player-directory";
+} from "./nba-player-directory.ts";
 import {
   loadRosterPlayerIdentities,
   updateRosterNbaPlayerIds
-} from "./nba2k-roster-db";
+} from "./nba2k-roster-db.ts";
 
 export async function syncNbaPlayerIds(db: DraftDbClient) {
   try {

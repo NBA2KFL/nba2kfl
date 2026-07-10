@@ -20,7 +20,7 @@ export async function syncConfiguredNbaPlayerIds() {
 
     await ensureNba2kRosterSchema(db);
 
-    return syncNbaPlayerIds(db);
+    return await syncNbaPlayerIds(db);
   } finally {
     await pool.end();
   }
