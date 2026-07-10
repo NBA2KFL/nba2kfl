@@ -146,7 +146,7 @@ describe("NBA 2K roster persistence", () => {
 
     expect(queryText).toContain("FROM nba2k_roster_players");
     expect(queryText).toContain("ORDER BY rating DESC, full_name ASC");
-    expect(players).toEqual([
+    expect(players.slice(0, 2)).toEqual([
       {
         sourcePlayerId: 2,
         fullName: "Jalen Brunson",
@@ -166,6 +166,76 @@ describe("NBA 2K roster persistence", () => {
     ]);
   });
 
+  it("adds the 2026 draft class to roster players and avoids duplicate names", async () => {
+    const db = createDbClient([
+      [
+        {
+          source_player_id: 1,
+          full_name: "Nikola Jokic",
+          position: "C",
+          rating: 98,
+          team_id: "den",
+          team_name: "Denver Nuggets"
+        },
+        {
+          source_player_id: 2,
+          full_name: "AJ Dybantsa",
+          position: "SF",
+          rating: 83,
+          team_id: "was",
+          team_name: "Washington Wizards"
+        }
+      ]
+    ]);
+
+    const players = await loadNba2kRosterPlayers(db);
+    const draftClassPlayers = players.filter(
+      (player) => player.sourcePlayerId <= -2026001
+    );
+
+    expect(players[0]).toEqual({
+      sourcePlayerId: 1,
+      fullName: "Nikola Jokic",
+      position: "C",
+      rating: 98,
+      teamId: "den",
+      teamName: "Denver Nuggets"
+    });
+    expect(players.filter((player) => player.fullName === "AJ Dybantsa")).toEqual([
+      {
+        sourcePlayerId: 2,
+        fullName: "AJ Dybantsa",
+        position: "SF",
+        rating: 83,
+        teamId: "was",
+        teamName: "Washington Wizards"
+      }
+    ]);
+    expect(draftClassPlayers).toHaveLength(59);
+    expect(players).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fullName: "Darryn Peterson",
+          position: "SG/PG",
+          rating: 78,
+          teamId: "uta"
+        }),
+        expect.objectContaining({
+          fullName: "Cameron Boozer",
+          position: "PF",
+          rating: 77,
+          teamId: "mem"
+        }),
+        expect.objectContaining({
+          fullName: "Malique Lewis",
+          position: "SF",
+          rating: 67,
+          teamId: "mil"
+        })
+      ])
+    );
+  });
+
   it("accepts only array payloads from the roster source", () => {
     const payload = [{ id: 1, first_name: "Joel" }];
 
@@ -178,8 +248,14 @@ describe("NBA 2K roster persistence", () => {
 
 function createDbClient(results: Record<string, unknown>[][] = []): DraftDbClient {
   let callIndex = 0;
+  const query = vi.fn(
+    async <T extends Record<string, unknown> = Record<string, unknown>>(
+      _queryText: string,
+      _params?: unknown[]
+    ) => (results[callIndex++] ?? []) as T[]
+  );
 
   return {
-    query: vi.fn(async () => results[callIndex++] ?? [])
+    query: query as DraftDbClient["query"]
   };
 }
