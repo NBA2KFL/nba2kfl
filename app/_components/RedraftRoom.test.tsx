@@ -5,7 +5,6 @@ import {
   clearCurrentUserRedraftPicks,
   getVisiblePlayerOptions,
   notifyRedraftPickValidated,
-  normalizeRedraftRounds,
   requestRedraftPickUpdate,
   requestRedraftPicks,
   requestRedraftRecap
@@ -92,13 +91,6 @@ describe("getVisiblePlayerOptions", () => {
         value: "Shai Gilgeous-Alexander"
       }
     ]);
-  });
-});
-
-describe("normalizeRedraftRounds", () => {
-  it("allows the full 14-round redraft and caps larger values", () => {
-    expect(normalizeRedraftRounds(14)).toBe(14);
-    expect(normalizeRedraftRounds(15)).toBe(14);
   });
 });
 

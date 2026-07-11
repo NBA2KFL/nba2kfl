@@ -9,8 +9,8 @@ import {
   useTransition
 } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,10 +31,11 @@ import {
 } from "@/lib/redraft";
 
 const NO_PLAYER_SELECTED = "__none__";
-const MIN_REDRAFT_ROUNDS = 1;
 export const MAX_REDRAFT_ROUNDS = 14;
-const DEFAULT_ROUNDS = MAX_REDRAFT_ROUNDS;
-const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
+const REDRAFT_ROUNDS = Array.from(
+  { length: MAX_REDRAFT_ROUNDS },
+  (_, index) => index + 1
+);
 
 type FranchiseSelectionsApiResponse = {
   selections?: FranchiseSelection[];
@@ -78,12 +79,12 @@ const USER_EMAILS_BY_DRAFT_SLOT = new Map(
 
 export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomProps) {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
-  const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
   const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
     []
   );
   const [picksByNumber, setPicksByNumber] = useState<RedraftPicksByNumber>({});
   const [openPickNumber, setOpenPickNumber] = useState<number | null>(null);
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [pickValidationError, setPickValidationError] = useState<string | null>(
     null
@@ -125,10 +126,6 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     let isMounted = true;
 
     async function restoreDraftState() {
-      const restoredRounds = Number(
-        window.localStorage.getItem(REDRAFT_ROUNDS_STORAGE_KEY)
-      );
-
       const [selectionResult, playerResult, picksResult] = await Promise.allSettled([
         requestFranchiseSelections(),
         requestRosterPlayers(),
@@ -163,9 +160,6 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
         setPickValidationError(toErrorMessage(picksResult.reason));
       }
 
-      setRounds(
-        normalizeRedraftRounds(restoredRounds)
-      );
       setHasLoaded(true);
     }
 
@@ -176,17 +170,9 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     };
   }, []);
 
-  useEffect(() => {
-    if (!hasLoaded) {
-      return;
-    }
-
-    window.localStorage.setItem(REDRAFT_ROUNDS_STORAGE_KEY, String(rounds));
-  }, [hasLoaded, rounds]);
-
   const draftPicks = useMemo(
-    () => createSnakeDraftPicks(selections, rounds),
-    [rounds, selections]
+    () => createSnakeDraftPicks(selections, MAX_REDRAFT_ROUNDS),
+    [selections]
   );
   const playerPool = useMemo(
     () => rosterPlayers.map((player) => player.fullName),
@@ -200,19 +186,17 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     (pick) => picksByNumber[pick.pickNumber]
   ).length;
   const currentPick = draftPicks.find((pick) => !picksByNumber[pick.pickNumber]);
+  const displayedRound =
+    selectedRound ?? currentPick?.round ?? draftPicks.at(-1)?.round ?? 1;
+  const displayedRoundPicks = useMemo(
+    () => draftPicks.filter((pick) => pick.round === displayedRound),
+    [draftPicks, displayedRound]
+  );
   const playerStatusText = getPlayerStatusText({
     hasLoaded,
     playerCount: rosterPlayers.length,
     playerLoadError
   });
-
-  function updateRounds(value: string) {
-    const nextRounds = Number(value);
-
-    if (Number.isInteger(nextRounds)) {
-      setRounds(normalizeRedraftRounds(nextRounds));
-    }
-  }
 
   async function updatePick(pickNumber: number, playerName: string) {
     const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
@@ -377,7 +361,7 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
             Tours
           </span>
           <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
-            {rounds}
+            {MAX_REDRAFT_ROUNDS}
           </strong>
         </div>
         <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[620px]:border-r-0 max-[620px]:border-b max-[620px]:border-command-border">
@@ -445,15 +429,33 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
           >
             <label className="grid gap-2">
               <span className="text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
-                Tours
+                Tour affiché
               </span>
-              <Input
-                max={MAX_REDRAFT_ROUNDS}
-                min={MIN_REDRAFT_ROUNDS}
-                onChange={(event) => updateRounds(event.target.value)}
-                type="number"
-                value={rounds}
-              />
+              <Select
+                onValueChange={(value) => setSelectedRound(Number(value))}
+                value={String(displayedRound)}
+              >
+                <SelectTrigger aria-label="Choisir le tour affiché">
+                  <span className="flex min-w-0 items-center gap-1.5 overflow-hidden text-left">
+                    <span className="truncate">Tour {displayedRound}</span>
+                    {currentPick?.round === displayedRound ? (
+                      <Badge variant='success'>En cours</Badge>
+                    ) : null}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {REDRAFT_ROUNDS.map((roundNumber) => (
+                    <SelectItem key={roundNumber} value={String(roundNumber)}>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate">Tour {roundNumber}</span>
+                        {currentPick?.round === roundNumber ? (
+                          <Badge variant='success'>En cours</Badge>
+                        ) : null}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <div
@@ -475,7 +477,7 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
           </aside>
 
           <ol className="m-0 grid list-none p-0">
-            {draftPicks.map((pick) => (
+            {displayedRoundPicks.map((pick) => (
               <RedraftPickRow
                 currentPickNumber={currentPick?.pickNumber ?? null}
                 key={pick.pickNumber}
@@ -686,14 +688,6 @@ export function getVisiblePlayerOptions({
   }
 
   return options;
-}
-
-export function normalizeRedraftRounds(rounds: number) {
-  if (!Number.isInteger(rounds)) {
-    return DEFAULT_ROUNDS;
-  }
-
-  return Math.min(Math.max(rounds, MIN_REDRAFT_ROUNDS), MAX_REDRAFT_ROUNDS);
 }
 
 export function canCurrentUserEditRedraftPick(
