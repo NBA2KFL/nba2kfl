@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import {
   useCallback,
@@ -9,8 +10,8 @@ import {
   useTransition
 } from "react";
 import { NBA_TEAMS, type Team } from "@/data/teams";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,13 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PlayerPickerDialog } from "./PlayerPickerDialog";
+import {
+  getPositionChipClasses,
+  getPrimaryPosition,
+  getRatingTileClasses,
+  PlayerAvatar
+} from "./player-visuals";
 import { useDraftLive } from "./useDraftLive";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
@@ -30,11 +38,11 @@ import {
   type SnakeDraftPick
 } from "@/lib/redraft";
 
-const NO_PLAYER_SELECTED = "__none__";
-const MIN_REDRAFT_ROUNDS = 1;
 export const MAX_REDRAFT_ROUNDS = 14;
-const DEFAULT_ROUNDS = MAX_REDRAFT_ROUNDS;
-const REDRAFT_ROUNDS_STORAGE_KEY = "nba2kfl:redraft-rounds:v1";
+const REDRAFT_ROUNDS = Array.from(
+  { length: MAX_REDRAFT_ROUNDS },
+  (_, index) => index + 1
+);
 
 type FranchiseSelectionsApiResponse = {
   selections?: FranchiseSelection[];
@@ -52,10 +60,6 @@ type RedraftRecapApiResponse = {
   pickCount?: number;
   messageCount?: number;
   error?: string;
-};
-type RedraftPlayerOption = {
-  label: string;
-  value: string;
 };
 type RedraftPickNotificationPayload = {
   gmName: string;
@@ -78,12 +82,12 @@ const USER_EMAILS_BY_DRAFT_SLOT = new Map(
 
 export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomProps) {
   const [selections, setSelections] = useState<FranchiseSelection[]>([]);
-  const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
   const [rosterPlayers, setRosterPlayers] = useState<Nba2kRosterPlayerSummary[]>(
     []
   );
   const [picksByNumber, setPicksByNumber] = useState<RedraftPicksByNumber>({});
   const [openPickNumber, setOpenPickNumber] = useState<number | null>(null);
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [pickValidationError, setPickValidationError] = useState<string | null>(
     null
@@ -125,10 +129,6 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     let isMounted = true;
 
     async function restoreDraftState() {
-      const restoredRounds = Number(
-        window.localStorage.getItem(REDRAFT_ROUNDS_STORAGE_KEY)
-      );
-
       const [selectionResult, playerResult, picksResult] = await Promise.allSettled([
         requestFranchiseSelections(),
         requestRosterPlayers(),
@@ -163,9 +163,6 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
         setPickValidationError(toErrorMessage(picksResult.reason));
       }
 
-      setRounds(
-        normalizeRedraftRounds(restoredRounds)
-      );
       setHasLoaded(true);
     }
 
@@ -176,17 +173,9 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     };
   }, []);
 
-  useEffect(() => {
-    if (!hasLoaded) {
-      return;
-    }
-
-    window.localStorage.setItem(REDRAFT_ROUNDS_STORAGE_KEY, String(rounds));
-  }, [hasLoaded, rounds]);
-
   const draftPicks = useMemo(
-    () => createSnakeDraftPicks(selections, rounds),
-    [rounds, selections]
+    () => createSnakeDraftPicks(selections, MAX_REDRAFT_ROUNDS),
+    [selections]
   );
   const playerPool = useMemo(
     () => rosterPlayers.map((player) => player.fullName),
@@ -200,19 +189,17 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
     (pick) => picksByNumber[pick.pickNumber]
   ).length;
   const currentPick = draftPicks.find((pick) => !picksByNumber[pick.pickNumber]);
+  const displayedRound =
+    selectedRound ?? currentPick?.round ?? draftPicks.at(-1)?.round ?? 1;
+  const displayedRoundPicks = useMemo(
+    () => draftPicks.filter((pick) => pick.round === displayedRound),
+    [draftPicks, displayedRound]
+  );
   const playerStatusText = getPlayerStatusText({
     hasLoaded,
     playerCount: rosterPlayers.length,
     playerLoadError
   });
-
-  function updateRounds(value: string) {
-    const nextRounds = Number(value);
-
-    if (Number.isInteger(nextRounds)) {
-      setRounds(normalizeRedraftRounds(nextRounds));
-    }
-  }
 
   async function updatePick(pickNumber: number, playerName: string) {
     const pick = draftPicks.find((draftPick) => draftPick.pickNumber === pickNumber);
@@ -377,7 +364,7 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
             Tours
           </span>
           <strong className="text-[0.94rem] font-[720] leading-tight tracking-[-0.02em] text-command-ink">
-            {rounds}
+            {MAX_REDRAFT_ROUNDS}
           </strong>
         </div>
         <div className="min-h-[64px] border-r border-command-border px-4 py-3 max-[620px]:border-r-0 max-[620px]:border-b max-[620px]:border-command-border">
@@ -445,15 +432,33 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
           >
             <label className="grid gap-2">
               <span className="text-[0.64rem] font-[760] leading-none uppercase tracking-[0.13em] text-command-muted">
-                Tours
+                Tour affiché
               </span>
-              <Input
-                max={MAX_REDRAFT_ROUNDS}
-                min={MIN_REDRAFT_ROUNDS}
-                onChange={(event) => updateRounds(event.target.value)}
-                type="number"
-                value={rounds}
-              />
+              <Select
+                onValueChange={(value) => setSelectedRound(Number(value))}
+                value={String(displayedRound)}
+              >
+                <SelectTrigger aria-label="Choisir le tour affiché">
+                  <span className="flex min-w-0 items-center gap-1.5 overflow-hidden text-left">
+                    <span className="truncate">Tour {displayedRound}</span>
+                    {currentPick?.round === displayedRound ? (
+                      <Badge variant="success">En cours</Badge>
+                    ) : null}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {REDRAFT_ROUNDS.map((roundNumber) => (
+                    <SelectItem key={roundNumber} value={String(roundNumber)}>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate">Tour {roundNumber}</span>
+                        {currentPick?.round === roundNumber ? (
+                          <Badge variant="success">En cours</Badge>
+                        ) : null}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <div
@@ -475,7 +480,7 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
           </aside>
 
           <ol className="m-0 grid list-none p-0">
-            {draftPicks.map((pick) => (
+            {displayedRoundPicks.map((pick) => (
               <RedraftPickRow
                 currentPickNumber={currentPick?.pickNumber ?? null}
                 key={pick.pickNumber}
@@ -531,13 +536,12 @@ function RedraftPickRow({
   selectedPlayers: Set<string>;
 }) {
   const team = findTeam(pick.selection.teamId);
-  const playerOptions = getVisiblePlayerOptions({
-    isOpen: isPlayerPickerOpen,
-    players,
-    selectedPlayer,
-    selectedPlayers
-  });
   const isCurrent = currentPickNumber === pick.pickNumber;
+  const selectedPlayerData = selectedPlayer
+    ? players.find((player) => player.fullName === selectedPlayer)
+    : undefined;
+  const isPickLocked =
+    !isUserAllowedToEdit || (players.length === 0 && !selectedPlayer);
 
   return (
     <li
@@ -569,37 +573,66 @@ function RedraftPickRow({
         </div>
       </div>
 
-      <Select
-        disabled={!isUserAllowedToEdit || (players.length === 0 && !selectedPlayer)}
-        onOpenChange={onOpenChange}
-        onValueChange={(value) =>
-          onChange(pick.pickNumber, value === NO_PLAYER_SELECTED ? "" : value)
-        }
-        value={selectedPlayer || NO_PLAYER_SELECTED}
+      <button
+        aria-label={`Joueur du pick ${pick.pickNumber}`}
+        className={cn(
+          "flex min-h-[38px] w-full items-center gap-2 overflow-hidden rounded-[10px] border border-command-border bg-command-surface text-[0.86rem] text-command-text shadow-[0_1px_0_rgba(16,24,40,0.03)] transition duration-150 ease-out hover:border-command-border-strong focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[rgba(94,106,210,0.22)] disabled:cursor-not-allowed disabled:bg-command-surface-muted disabled:text-command-muted max-[620px]:col-span-full",
+          selectedPlayerData ? "pl-1.5 pr-2.5" : "px-3"
+        )}
+        disabled={isPickLocked}
+        onClick={() => onOpenChange(true)}
+        type="button"
       >
-        <SelectTrigger
-          aria-label={`Joueur du pick ${pick.pickNumber}`}
-          className="max-[620px]:col-span-full"
-        >
-          <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+        {selectedPlayerData ? (
+          <>
+            <PlayerAvatar className="h-7 w-7" nbaPlayerId={selectedPlayerData.nbaPlayerId} />
+            <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left font-[650] text-command-ink">
+              {selectedPlayerData.fullName}
+            </span>
+            <span className="flex shrink-0 items-center gap-1">
+              <span
+                className={cn(
+                  "inline-flex w-7 shrink-0 items-center justify-center rounded-[6px] border py-0.5 text-[0.64rem] font-[760] uppercase",
+                  getPositionChipClasses(selectedPlayerData.position)
+                )}
+              >
+                {getPrimaryPosition(selectedPlayerData.position) ?? "?"}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 rounded-[6px] px-1.5 py-0.5 text-[0.72rem] font-[800]",
+                  getRatingTileClasses(selectedPlayerData.rating)
+                )}
+              >
+                {selectedPlayerData.rating}
+              </span>
+            </span>
+          </>
+        ) : (
+          <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left">
             {selectedPlayer
-              ? getSelectedPlayerLabel(players, selectedPlayer)
+              ? selectedPlayer
               : isUserAllowedToEdit
                 ? "Choisir joueur"
                 : "Pas à votre tour"}
           </span>
-        </SelectTrigger>
-        {isPlayerPickerOpen ? (
-          <SelectContent>
-            <SelectItem value={NO_PLAYER_SELECTED}>Choisir joueur</SelectItem>
-            {playerOptions.map((player) => (
-              <SelectItem key={player.value} value={player.value}>
-                {player.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        ) : null}
-      </Select>
+        )}
+        {isPickLocked || selectedPlayerData ? null : (
+          <ChevronRight aria-hidden className="shrink-0 text-command-muted" size={14} />
+        )}
+      </button>
+
+      <PlayerPickerDialog
+        isUserAllowedToEdit={isUserAllowedToEdit}
+        onConfirm={(playerName) => onChange(pick.pickNumber, playerName)}
+        onOpenChange={onOpenChange}
+        open={isPlayerPickerOpen}
+        pick={pick}
+        players={players}
+        selectedPlayer={selectedPlayer}
+        selectedPlayers={selectedPlayers}
+        teamName={team?.name ?? null}
+      />
     </li>
   );
 }
@@ -654,46 +687,6 @@ function getPlayerStatusText({
     isAlert: false,
     title: `${playerCount} joueurs`
   };
-}
-
-export function getVisiblePlayerOptions({
-  isOpen,
-  players,
-  selectedPlayer,
-  selectedPlayers
-}: {
-  isOpen: boolean;
-  players: readonly Nba2kRosterPlayerSummary[];
-  selectedPlayer: string;
-  selectedPlayers: ReadonlySet<string>;
-}): RedraftPlayerOption[] {
-  if (!isOpen) {
-    return [];
-  }
-
-  const options = players
-    .filter(
-      (player) =>
-        player.fullName === selectedPlayer || !selectedPlayers.has(player.fullName)
-    )
-    .map((player) => ({
-      label: formatPlayerOption(player),
-      value: player.fullName
-    }));
-
-  if (selectedPlayer && !options.some((option) => option.value === selectedPlayer)) {
-    return [{ label: selectedPlayer, value: selectedPlayer }, ...options];
-  }
-
-  return options;
-}
-
-export function normalizeRedraftRounds(rounds: number) {
-  if (!Number.isInteger(rounds)) {
-    return DEFAULT_ROUNDS;
-  }
-
-  return Math.min(Math.max(rounds, MIN_REDRAFT_ROUNDS), MAX_REDRAFT_ROUNDS);
 }
 
 export function canCurrentUserEditRedraftPick(
@@ -756,26 +749,6 @@ export async function notifyRedraftPickValidated(
   if (!response.ok) {
     throw new Error("Impossible de notifier Discord.");
   }
-}
-
-function formatPlayerOption(player: Nba2kRosterPlayerSummary) {
-  return [
-    player.fullName,
-    player.position,
-    `OVR ${player.rating}`,
-    player.teamName
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
-function getSelectedPlayerLabel(
-  players: readonly Nba2kRosterPlayerSummary[],
-  selectedPlayer: string
-) {
-  const player = players.find((candidate) => candidate.fullName === selectedPlayer);
-
-  return player ? formatPlayerOption(player) : selectedPlayer;
 }
 
 function TeamLogo({ team }: { team: Team }) {
