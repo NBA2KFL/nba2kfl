@@ -3,6 +3,16 @@ import { cn } from "@/lib/utils";
 
 export const PLAYER_SILHOUETTE_URL = "/images/player-silhouette.svg";
 
+export const POSITION_FILTERS = ["all", "PG", "SG", "SF", "PF", "C"] as const;
+export const POSITION_LABELS: Record<(typeof POSITION_FILTERS)[number], string> = {
+  all: "Tous postes",
+  PG: "Meneur (PG)",
+  SG: "Arrière (SG)",
+  SF: "Ailier (SF)",
+  PF: "Ailier fort (PF)",
+  C: "Pivot (C)"
+};
+
 const POSITION_COLOR_CLASSES: Record<string, string> = {
   PG: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
   SG: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
