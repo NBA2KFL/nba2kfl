@@ -56,6 +56,7 @@ export type Nba2kRosterPlayerSummary = {
   rating: number;
   teamId: string;
   teamName: string;
+  contractCapHit2026?: number | null;
 };
 
 type Nba2kRosterPlayerSummaryRow = {
@@ -597,7 +598,7 @@ function optionalInteger(value: unknown) {
   return null;
 }
 
-function normalizeName(value: string) {
+export function normalizeName(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

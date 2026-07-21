@@ -21,6 +21,14 @@ const POSITION_COLOR_CLASSES: Record<string, string> = {
   C: "border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300"
 };
 
+export function formatCapHit(capHit: number | null | undefined) {
+  if (capHit === null || capHit === undefined) {
+    return null;
+  }
+
+  return `$${(capHit / 1_000_000).toFixed(1)}M`;
+}
+
 export function getPlayerPhotoUrl(nbaPlayerId: number | null) {
   return nbaPlayerId
     ? `/api/discord-media/player/${nbaPlayerId}`
