@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 const DRAFT_LIVE_FALLBACK_ERROR_COUNT = 3;
 const DRAFT_LIVE_FALLBACK_INTERVAL_MS = 15000;
+const DRAFT_LIVE_REFRESH_DEBOUNCE_MS = 250;
 
 const REDRAFT_REFRESH_EVENT_TYPES = [
   "franchise_selection_changed",
@@ -21,6 +22,7 @@ export function useDraftLive({ onRefresh }: DraftLiveOptions) {
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+    let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
     let consecutiveErrors = 0;
 
     function clearFallbackInterval() {
@@ -34,6 +36,17 @@ export function useDraftLive({ onRefresh }: DraftLiveOptions) {
       void onRefresh();
     }
 
+    function scheduleRefresh() {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+
+      refreshTimeout = setTimeout(() => {
+        refreshTimeout = null;
+        refresh();
+      }, DRAFT_LIVE_REFRESH_DEBOUNCE_MS);
+    }
+
     function handleEvent(event: Event) {
       const message = event as MessageEvent<string>;
       const lastEventId = Number(message.lastEventId);
@@ -44,7 +57,7 @@ export function useDraftLive({ onRefresh }: DraftLiveOptions) {
 
       consecutiveErrors = 0;
       clearFallbackInterval();
-      refresh();
+      scheduleRefresh();
     }
 
     eventSource = new EventSource(getDraftLiveUrl(lastEventIdRef.current));
@@ -72,6 +85,10 @@ export function useDraftLive({ onRefresh }: DraftLiveOptions) {
     return () => {
       eventSource?.close();
       clearFallbackInterval();
+
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
     };
   }, [onRefresh]);
 }
