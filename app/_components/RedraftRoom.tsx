@@ -21,6 +21,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PlayerPickerDialog } from "./PlayerPickerDialog";
+import { PlayerRosterDialog } from "./PlayerRosterDialog";
 import {
   getPositionChipClasses,
   getPrimaryPosition,
@@ -88,6 +89,7 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
   const [picksByNumber, setPicksByNumber] = useState<RedraftPicksByNumber>({});
   const [openPickNumber, setOpenPickNumber] = useState<number | null>(null);
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
+  const [isRosterDialogOpen, setIsRosterDialogOpen] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [pickValidationError, setPickValidationError] = useState<string | null>(
     null
@@ -477,6 +479,10 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
                 {playerStatusText.description}
               </p>
             </div>
+
+            <Button onClick={() => setIsRosterDialogOpen(true)} variant="secondary">
+              Voir la liste des joueurs
+            </Button>
           </aside>
 
           <ol className="m-0 grid list-none p-0">
@@ -510,6 +516,13 @@ export function RedraftRoom({ currentUserEmail, isAdmin = false }: RedraftRoomPr
           </ol>
         </div>
       )}
+
+      <PlayerRosterDialog
+        onOpenChange={setIsRosterDialogOpen}
+        open={isRosterDialogOpen}
+        players={rosterPlayers}
+        selectedPlayers={selectedPlayers}
+      />
     </section>
   );
 }

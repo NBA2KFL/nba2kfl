@@ -25,18 +25,10 @@ import type { SnakeDraftPick } from "@/lib/redraft";
 import {
   getPositionChipClasses,
   getRatingTileClasses,
-  PlayerAvatar
+  PlayerAvatar,
+  POSITION_FILTERS,
+  POSITION_LABELS
 } from "./player-visuals";
-
-const POSITION_FILTERS = ["all", "PG", "SG", "SF", "PF", "C"] as const;
-const POSITION_LABELS: Record<(typeof POSITION_FILTERS)[number], string> = {
-  all: "Tous postes",
-  PG: "Meneur (PG)",
-  SG: "Arrière (SG)",
-  SF: "Ailier (SF)",
-  PF: "Ailier fort (PF)",
-  C: "Pivot (C)"
-};
 
 type PlayerPickerDialogProps = {
   isUserAllowedToEdit: boolean;
