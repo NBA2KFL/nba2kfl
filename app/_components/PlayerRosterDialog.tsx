@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Nba2kRosterPlayerSummary } from "@/lib/nba2k-roster-db";
 import {
+  formatCapHit,
   getPositionChipClasses,
   getRatingTileClasses,
   PlayerAvatar,
@@ -111,7 +112,7 @@ export function PlayerRosterDialog({
           <DialogDescription>
             {filteredPlayers.length} joueur
             {filteredPlayers.length > 1 ? "s" : ""}{" "}
-            {status === "taken" ? "déjà sélectionnés" : "encore disponibles"}
+            {status === "taken" ? "déjà sélectionnés" : "encore disponibles"} · Cap hit 2026‑27
           </DialogDescription>
         </DialogHeader>
 
@@ -181,12 +182,21 @@ export function PlayerRosterDialog({
                         <span className="block truncate text-[0.88rem] font-[720] text-command-ink">
                           {player.fullName}
                         </span>
-                        <Badge
-                          className={cn("mt-1", getPositionChipClasses(player.position))}
-                          variant="muted"
-                        >
-                          {player.position ?? "?"}
-                        </Badge>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          <Badge
+                            className={getPositionChipClasses(player.position)}
+                            variant="muted"
+                          >
+                            {player.position ?? "?"}
+                          </Badge>
+                          {formatCapHit(player.contractCapHit2026) ? (
+                            <Badge variant="success">
+                              {formatCapHit(player.contractCapHit2026)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="muted">UFA</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div

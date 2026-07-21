@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { PlayerPickerDialog } from "./PlayerPickerDialog";
 import { PlayerRosterDialog } from "./PlayerRosterDialog";
 import {
+  formatCapHit,
   getPositionChipClasses,
   getPrimaryPosition,
   getRatingTileClasses,
@@ -589,7 +590,7 @@ function RedraftPickRow({
       <button
         aria-label={`Joueur du pick ${pick.pickNumber}`}
         className={cn(
-          "flex min-h-[38px] w-full items-center gap-2 overflow-hidden rounded-[10px] border border-command-border bg-command-surface text-[0.86rem] text-command-text shadow-[0_1px_0_rgba(16,24,40,0.03)] transition duration-150 ease-out hover:border-command-border-strong focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[rgba(94,106,210,0.22)] disabled:cursor-not-allowed disabled:bg-command-surface-muted disabled:text-command-muted max-[620px]:col-span-full",
+          "flex min-h-[45px] w-full items-center gap-2 overflow-hidden rounded-[10px] border border-command-border bg-command-surface text-[0.86rem] text-command-text shadow-[0_1px_0_rgba(16,24,40,0.03)] transition duration-150 ease-out hover:border-command-border-strong focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[rgba(94,106,210,0.22)] disabled:cursor-not-allowed disabled:bg-command-surface-muted disabled:text-command-muted max-[620px]:col-span-full",
           selectedPlayerData ? "pl-1.5 pr-2.5" : "px-3"
         )}
         disabled={isPickLocked}
@@ -599,8 +600,15 @@ function RedraftPickRow({
         {selectedPlayerData ? (
           <>
             <PlayerAvatar className="h-7 w-7" nbaPlayerId={selectedPlayerData.nbaPlayerId} />
-            <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left font-[650] text-command-ink">
-              {selectedPlayerData.fullName}
+            <span className="flex min-w-0 flex-1 flex-col overflow-hidden text-left leading-tight">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap font-[650] text-command-ink">
+                {selectedPlayerData.fullName}
+              </span>
+              <span className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[0.68rem] font-[600] text-command-muted">
+                {formatCapHit(selectedPlayerData.contractCapHit2026)
+                  ? `${formatCapHit(selectedPlayerData.contractCapHit2026)} (26-27)`
+                  : "UFA"}
+              </span>
             </span>
             <span className="flex shrink-0 items-center gap-1">
               <span
